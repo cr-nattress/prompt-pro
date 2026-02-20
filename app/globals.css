@@ -69,6 +69,7 @@
 	--ease-default: cubic-bezier(0.4, 0, 0.2, 1);
 	--ease-in: cubic-bezier(0.4, 0, 1, 1);
 	--ease-out: cubic-bezier(0, 0, 0.2, 1);
+	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
@@ -159,6 +160,13 @@
 		50% {
 			opacity: 0.5;
 		}
+	}
+}
+
+@media (max-width: 767px) {
+	[data-sonner-toaster] {
+		/* biome-ignore lint/complexity/noImportantStyles: override sonner inline --offset */
+		--offset: 5rem !important;
 	}
 }
 

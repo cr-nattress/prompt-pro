@@ -4,7 +4,7 @@ export default async function DashboardPage() {
 	const { user, workspace } = await requireAuth();
 
 	return (
-		<div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
+		<div className="flex flex-col gap-4">
 			<h1 className="font-bold text-2xl">Dashboard</h1>
 			<p className="text-muted-foreground">
 				Welcome, {user.name}! You are in the{" "}

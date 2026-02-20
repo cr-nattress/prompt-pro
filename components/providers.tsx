@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Cast required due to exactOptionalPropertyTypes incompatibility with Clerk's theme types
 const baseTheme = dark as Parameters<
@@ -12,7 +13,13 @@ const baseTheme = dark as Parameters<
 	? T
 	: never;
 
-export function Providers({ children }: { children: React.ReactNode }) {
+const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
+
+function AuthProvider({ children }: { children: React.ReactNode }) {
+	if (bypassAuth) {
+		return <>{children}</>;
+	}
+
 	return (
 		<ClerkProvider
 			appearance={{
@@ -38,14 +45,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				},
 			}}
 		>
+			{children}
+		</ClerkProvider>
+	);
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+	return (
+		<AuthProvider>
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="dark"
 				disableTransitionOnChange
 			>
-				{children}
+				<TooltipProvider delayDuration={0}>{children}</TooltipProvider>
 				<Toaster />
 			</ThemeProvider>
-		</ClerkProvider>
+		</AuthProvider>
 	);
 }
