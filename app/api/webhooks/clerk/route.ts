@@ -2,6 +2,8 @@ import type { WebhookEvent } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
+import { createUser, deleteUser, updateUser } from "@/lib/db/queries/users";
+import { createWorkspace } from "@/lib/db/queries/workspaces";
 
 export async function POST(req: Request) {
 	const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -43,15 +45,51 @@ export async function POST(req: Request) {
 	}
 
 	switch (event.type) {
-		case "user.created":
-			// TODO: Epic 03 — Create user + default workspace in database
+		case "user.created": {
+			const { id, email_addresses, first_name, last_name, image_url } =
+				event.data;
+			const email = email_addresses[0]?.email_address ?? "";
+			const name = [first_name, last_name].filter(Boolean).join(" ") || email;
+
+			const dbUser = await createUser({
+				clerkId: id,
+				email,
+				name,
+				firstName: first_name ?? undefined,
+				lastName: last_name ?? undefined,
+				imageUrl: image_url ?? undefined,
+			});
+
+			const slug = email.split("@")[0] ?? "default";
+			await createWorkspace({
+				slug: `${slug}-${dbUser.id.slice(0, 8)}`,
+				name: first_name ? `${first_name}'s Workspace` : "My Workspace",
+				ownerId: dbUser.id,
+			});
 			break;
-		case "user.updated":
-			// TODO: Epic 03 — Sync user profile changes to database
+		}
+		case "user.updated": {
+			const { id, email_addresses, first_name, last_name, image_url } =
+				event.data;
+			const email = email_addresses[0]?.email_address ?? "";
+			const name = [first_name, last_name].filter(Boolean).join(" ") || email;
+
+			await updateUser(id, {
+				email,
+				name,
+				firstName: first_name ?? undefined,
+				lastName: last_name ?? undefined,
+				imageUrl: image_url ?? undefined,
+			});
 			break;
-		case "user.deleted":
-			// TODO: Epic 03 — Soft-delete user and associated data
+		}
+		case "user.deleted": {
+			const { id } = event.data;
+			if (id) {
+				await deleteUser(id);
+			}
 			break;
+		}
 	}
 
 	return NextResponse.json({ received: true });
