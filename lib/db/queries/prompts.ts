@@ -193,16 +193,54 @@ export async function createPromptVersion(
 	return result[0]!;
 }
 
-export async function promoteVersion(
+export async function getPromptVersionById(versionId: string) {
+	const result = await db
+		.select()
+		.from(promptVersions)
+		.where(eq(promptVersions.id, versionId))
+		.limit(1);
+	return result[0] ?? null;
+}
+
+export async function promotePromptVersion(
 	versionId: string,
+	promptTemplateId: string,
 	newStatus: "active" | "stable" | "deprecated",
 ) {
-	const result = await db
-		.update(promptVersions)
-		.set({ status: newStatus })
-		.where(eq(promptVersions.id, versionId))
-		.returning();
-	return result[0] ?? null;
+	return db.transaction(async (tx) => {
+		// Demote the current holder of this status to "draft"
+		await tx
+			.update(promptVersions)
+			.set({ status: "draft" })
+			.where(
+				and(
+					eq(promptVersions.promptTemplateId, promptTemplateId),
+					eq(promptVersions.status, newStatus),
+				),
+			);
+
+		// Promote the target version
+		const result = await tx
+			.update(promptVersions)
+			.set({ status: newStatus })
+			.where(eq(promptVersions.id, versionId))
+			.returning();
+		return result[0] ?? null;
+	});
+}
+
+export async function restorePromptVersion(
+	promptTemplateId: string,
+	sourceVersionId: string,
+) {
+	const source = await getPromptVersionById(sourceVersionId);
+	if (!source) return null;
+
+	return createPromptVersion(promptTemplateId, {
+		templateText: source.templateText,
+		llm: source.llm,
+		changeNote: `Restored from v${source.version}`,
+	});
 }
 
 export async function getPromptBySlugInWorkspace(

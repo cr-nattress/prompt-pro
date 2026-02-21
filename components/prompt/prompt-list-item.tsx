@@ -14,6 +14,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { StatusBadge } from "@/components/version/status-badge";
+import { VersionBadge } from "@/components/version/version-badge";
 import { timeAgo } from "@/lib/prompt-utils";
 import { showToast } from "@/lib/toast";
 import type { PromptWithVersion } from "@/types";
@@ -56,9 +58,18 @@ export function PromptListItem({ prompt }: PromptListItemProps) {
 							</Badge>
 						)}
 						{prompt.latestVersion && (
-							<Badge variant="outline" className="shrink-0 text-xs">
-								v{prompt.latestVersion.version}
-							</Badge>
+							<>
+								<VersionBadge
+									version={prompt.latestVersion.version}
+									className="shrink-0 text-xs"
+								/>
+								{prompt.latestVersion.status !== "draft" && (
+									<StatusBadge
+										status={prompt.latestVersion.status}
+										className="shrink-0"
+									/>
+								)}
+							</>
 						)}
 						{prompt.purpose && (
 							<Badge

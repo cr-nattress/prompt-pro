@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { updateBlockAction } from "@/app/(dashboard)/blueprints/actions";
+import { createBlockVersionAction } from "@/app/(dashboard)/blueprints/version-actions";
 import { PromptEditor } from "@/components/prompt/editor";
 import { TokenCounter } from "@/components/prompt/editor/token-counter";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export function BlockInspectorPanel({
 		useBlueprintDesignerStore();
 	const block = blocks.find((b) => b.id === selectedBlockId);
 	const autoSaveRef = useRef<ReturnType<typeof setTimeout>>(null);
+	const initialContentRef = useRef(block?.content ?? "");
 
 	const [content, setContent] = useState(block?.content ?? "");
 	const [name, setName] = useState(block?.name ?? "");
@@ -60,6 +62,7 @@ export function BlockInspectorPanel({
 			setIsRequired(block.isRequired);
 			setIsConditional(block.isConditional);
 			setCondition(block.condition ?? "");
+			initialContentRef.current = block.content ?? "";
 		}
 	}, [blockId]);
 
@@ -94,6 +97,19 @@ export function BlockInspectorPanel({
 				const result = await updateBlockAction(selectedBlockId, data);
 				if (!result.success) {
 					showToast("error", result.error);
+					return;
+				}
+
+				// Create a block version if content changed
+				if (
+					data.content !== undefined &&
+					data.content !== initialContentRef.current
+				) {
+					await createBlockVersionAction(selectedBlockId, {
+						content: data.content,
+						changeNote: "Content updated",
+					});
+					initialContentRef.current = data.content ?? "";
 				}
 			}, 3000);
 		},

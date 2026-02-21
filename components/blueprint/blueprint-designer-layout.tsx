@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronLeft, Copy, Eye, Loader2, Save, Settings } from "lucide-react";
+import {
+	ChevronLeft,
+	Copy,
+	Eye,
+	History,
+	Loader2,
+	Save,
+	Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -10,6 +18,10 @@ import {
 	duplicateBlueprintAction,
 	updateBlueprintAction,
 } from "@/app/(dashboard)/blueprints/actions";
+import {
+	createBlueprintVersionAction,
+	getBlueprintVersionsAction,
+} from "@/app/(dashboard)/blueprints/version-actions";
 import { Button } from "@/components/ui/button";
 import {
 	ResizableHandle,
@@ -18,6 +30,7 @@ import {
 } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VersionPanel } from "@/components/version/version-panel";
 import type { App } from "@/lib/db/schema";
 import { showToast } from "@/lib/toast";
 import type { BlueprintFormValues } from "@/lib/validations/blueprint";
@@ -146,6 +159,10 @@ export function BlueprintDesignerLayout({
 			});
 
 			if (result.success) {
+				// Create a blueprint version on explicit save
+				await createBlueprintVersionAction(blueprint.id, {
+					changeNote: "Saved blueprint",
+				});
 				showToast("success", "Blueprint saved");
 				setLastSavedAt(new Date());
 				router.refresh();
@@ -213,6 +230,12 @@ export function BlueprintDesignerLayout({
 				)}
 				{mode === "edit" && (
 					<>
+						<Button size="sm" variant="ghost" asChild>
+							<Link href={`/blueprints/${blueprint?.slug}/versions`}>
+								<History className="mr-1.5 h-3.5 w-3.5" />
+								History
+							</Link>
+						</Button>
 						<Button
 							size="sm"
 							variant="outline"
@@ -280,6 +303,14 @@ export function BlueprintDesignerLayout({
 		</div>
 	);
 
+	const versionsPanel = blueprint ? (
+		<VersionPanel
+			entityId={blueprint.id}
+			allHref={`/blueprints/${blueprint.slug}/versions`}
+			fetchVersions={getBlueprintVersionsAction}
+		/>
+	) : null;
+
 	return (
 		<div className="flex h-[calc(100vh-4rem)] flex-col">
 			{topBar}
@@ -303,12 +334,16 @@ export function BlueprintDesignerLayout({
 					<TabsList className="mx-4 mt-2">
 						<TabsTrigger value="stack">Stack</TabsTrigger>
 						<TabsTrigger value="inspector">Inspector</TabsTrigger>
+						<TabsTrigger value="versions">Versions</TabsTrigger>
 					</TabsList>
 					<TabsContent value="stack" className="flex-1 overflow-auto">
 						{leftPanel}
 					</TabsContent>
 					<TabsContent value="inspector" className="flex-1 overflow-auto">
 						{rightPanel}
+					</TabsContent>
+					<TabsContent value="versions" className="flex-1 overflow-auto">
+						{versionsPanel}
 					</TabsContent>
 				</Tabs>
 			</div>

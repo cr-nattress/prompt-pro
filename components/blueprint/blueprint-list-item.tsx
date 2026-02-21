@@ -14,8 +14,11 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { StatusBadge } from "@/components/version/status-badge";
+import { VersionBadge } from "@/components/version/version-badge";
 import { timeAgo } from "@/lib/prompt-utils";
 import { showToast } from "@/lib/toast";
+import type { VersionStatus } from "@/lib/version-utils";
 import type { BlueprintWithBlockCount } from "@/types";
 import { DeleteBlueprintDialog } from "./delete-blueprint-dialog";
 
@@ -59,6 +62,20 @@ export function BlueprintListItem({ blueprint }: BlueprintListItemProps) {
 							{blueprint.blockCount} block
 							{blueprint.blockCount !== 1 ? "s" : ""}
 						</Badge>
+						{blueprint.latestVersion && (
+							<>
+								<VersionBadge
+									version={blueprint.latestVersion.version}
+									className="shrink-0 text-xs"
+								/>
+								{blueprint.latestVersion.status !== "draft" && (
+									<StatusBadge
+										status={blueprint.latestVersion.status as VersionStatus}
+										className="shrink-0"
+									/>
+								)}
+							</>
+						)}
 					</div>
 					{blueprint.description && (
 						<p className="hidden truncate text-muted-foreground text-sm md:block">

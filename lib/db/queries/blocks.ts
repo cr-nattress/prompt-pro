@@ -1,4 +1,4 @@
-import { asc, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, max } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
 	contextBlocks,
@@ -106,4 +106,54 @@ export async function getBlockVersions(blockId: string) {
 		.from(contextBlockVersions)
 		.where(eq(contextBlockVersions.blockId, blockId))
 		.orderBy(desc(contextBlockVersions.createdAt));
+}
+
+export async function getBlockVersionById(versionId: string) {
+	const result = await db
+		.select()
+		.from(contextBlockVersions)
+		.where(eq(contextBlockVersions.id, versionId))
+		.limit(1);
+	return result[0] ?? null;
+}
+
+export async function promoteBlockVersion(
+	versionId: string,
+	blockId: string,
+	newStatus: "active" | "stable" | "deprecated",
+) {
+	return db.transaction(async (tx) => {
+		// Demote the current holder of this status to "draft"
+		await tx
+			.update(contextBlockVersions)
+			.set({ status: "draft" })
+			.where(
+				and(
+					eq(contextBlockVersions.blockId, blockId),
+					eq(contextBlockVersions.status, newStatus),
+				),
+			);
+
+		// Promote the target version
+		const result = await tx
+			.update(contextBlockVersions)
+			.set({ status: newStatus })
+			.where(eq(contextBlockVersions.id, versionId))
+			.returning();
+		return result[0] ?? null;
+	});
+}
+
+export async function restoreBlockVersion(
+	blockId: string,
+	sourceVersionId: string,
+) {
+	const source = await getBlockVersionById(sourceVersionId);
+	if (!source) return null;
+
+	return createBlockVersion(blockId, {
+		content: source.content,
+		config: source.config,
+		changeNote: `Restored from v${source.version}`,
+	});
 }

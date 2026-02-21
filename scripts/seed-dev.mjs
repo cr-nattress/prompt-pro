@@ -100,6 +100,63 @@ try {
 	`;
 	console.log("  Sample blocks seeded");
 
+	// Seed a sample prompt with versions
+	const promptId = "00000000-0000-0000-0000-000000003000";
+	await sql`
+		INSERT INTO prompt.prompt_templates (id, app_id, workspace_id, slug, name, purpose, description, tags)
+		VALUES (
+			${promptId},
+			${appId},
+			${workspaceId},
+			'code-review',
+			'Code Review Assistant',
+			'code-generation',
+			'A prompt template for automated code review',
+			ARRAY['code', 'review', 'assistant']
+		)
+		ON CONFLICT (id) DO NOTHING
+	`;
+
+	await sql`
+		INSERT INTO prompt.prompt_versions (id, prompt_template_id, version, template_text, llm, change_note, status)
+		VALUES
+			(
+				'00000000-0000-0000-0000-000000003001',
+				${promptId},
+				1,
+				'Review the following code and provide feedback.\n\n{{code}}',
+				'gpt-4o',
+				'Initial version',
+				'active'
+			),
+			(
+				'00000000-0000-0000-0000-000000003002',
+				${promptId},
+				2,
+				'You are an expert code reviewer. Review the following code for bugs, performance issues, and best practices.\n\nLanguage: {{language}}\n\n```\n{{code}}\n```\n\nProvide your review in a structured format with sections for Issues, Suggestions, and Overall Assessment.',
+				'gpt-4o',
+				'Enhanced with structured output and language parameter',
+				'draft'
+			)
+		ON CONFLICT (id) DO NOTHING
+	`;
+	console.log("  Sample prompt with versions seeded");
+
+	// Seed a blueprint version
+	await sql`
+		INSERT INTO prompt.blueprint_versions (id, blueprint_id, version, block_version_snapshot, change_note, status)
+		VALUES (
+			'00000000-0000-0000-0000-000000004001',
+			${blueprintId},
+			1,
+			'{}',
+			'Initial blueprint version',
+			'active'
+		)
+		ON CONFLICT (id) DO NOTHING
+	`;
+	console.log("  Sample blueprint version seeded");
+
 	console.log("Dev seed complete!");
 } catch (err) {
 	console.error("Seed failed:", err.message);

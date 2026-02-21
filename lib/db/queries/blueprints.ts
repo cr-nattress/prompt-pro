@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+	blueprintVersions,
 	contextBlocks,
 	contextBlueprints,
 	type NewContextBlueprint,
@@ -185,8 +186,27 @@ export async function getBlueprintsWithBlockCount(
 		db.select({ total: count() }).from(contextBlueprints).where(whereClause),
 	]);
 
+	// Fetch latest version for each blueprint
+	const itemsWithVersions = await Promise.all(
+		rows.map(async (row) => {
+			const version = await db
+				.select({
+					version: blueprintVersions.version,
+					status: blueprintVersions.status,
+				})
+				.from(blueprintVersions)
+				.where(eq(blueprintVersions.blueprintId, row.id))
+				.orderBy(desc(blueprintVersions.version))
+				.limit(1);
+			return {
+				...row,
+				latestVersion: version[0] ?? null,
+			};
+		}),
+	);
+
 	return {
-		items: rows as BlueprintWithBlockCount[],
+		items: itemsWithVersions as BlueprintWithBlockCount[],
 		total: totalResult[0]?.total ?? 0,
 		page,
 		pageSize,

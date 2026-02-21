@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Copy, Loader2, Save } from "lucide-react";
+import { ChevronLeft, Copy, History, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,9 +11,9 @@ import {
 	duplicatePromptAction,
 	updatePromptAction,
 } from "@/app/(dashboard)/prompts/actions";
+import { getPromptVersionsAction } from "@/app/(dashboard)/prompts/version-actions";
 import { TokenCounter } from "@/components/prompt/editor/token-counter";
 import { PromptParameters } from "@/components/prompt/prompt-parameters";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	ResizableHandle,
@@ -21,6 +21,9 @@ import {
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatusBadge } from "@/components/version/status-badge";
+import { VersionBadge } from "@/components/version/version-badge";
+import { VersionPanel } from "@/components/version/version-panel";
 import type { App } from "@/lib/db/schema";
 import { extractParameters } from "@/lib/prompt-utils";
 import { showToast } from "@/lib/toast";
@@ -246,9 +249,15 @@ export function PromptEditorLayout({
 					{mode === "create" ? "New Prompt" : prompt?.name}
 				</span>
 				{prompt?.latestVersion && (
-					<Badge variant="outline" className="text-xs">
-						v{prompt.latestVersion.version}
-					</Badge>
+					<>
+						<VersionBadge
+							version={prompt.latestVersion.version}
+							className="text-xs"
+						/>
+						{prompt.latestVersion.status !== "draft" && (
+							<StatusBadge status={prompt.latestVersion.status} />
+						)}
+					</>
 				)}
 			</div>
 			<div className="flex items-center gap-3">
@@ -259,15 +268,23 @@ export function PromptEditorLayout({
 					</span>
 				)}
 				{mode === "edit" && (
-					<Button
-						size="sm"
-						variant="outline"
-						onClick={handleDuplicate}
-						disabled={isSaving}
-					>
-						<Copy className="mr-1.5 h-3.5 w-3.5" />
-						Duplicate
-					</Button>
+					<>
+						<Button size="sm" variant="ghost" asChild>
+							<Link href={`/prompts/${prompt?.slug}/versions`}>
+								<History className="mr-1.5 h-3.5 w-3.5" />
+								History
+							</Link>
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleDuplicate}
+							disabled={isSaving}
+						>
+							<Copy className="mr-1.5 h-3.5 w-3.5" />
+							Duplicate
+						</Button>
+					</>
 				)}
 				<Button size="sm" onClick={handleSave} disabled={isSaving}>
 					<Save className="mr-1.5 h-3.5 w-3.5" />
@@ -306,6 +323,14 @@ export function PromptEditorLayout({
 		</div>
 	);
 
+	const versionsPanel = prompt ? (
+		<VersionPanel
+			entityId={prompt.id}
+			allHref={`/prompts/${prompt.slug}/versions`}
+			fetchVersions={getPromptVersionsAction}
+		/>
+	) : null;
+
 	return (
 		<div className="flex h-[calc(100vh-4rem)] flex-col">
 			{topBar}
@@ -329,12 +354,16 @@ export function PromptEditorLayout({
 					<TabsList className="mx-4 mt-2">
 						<TabsTrigger value="edit">Edit</TabsTrigger>
 						<TabsTrigger value="details">Details</TabsTrigger>
+						<TabsTrigger value="versions">Versions</TabsTrigger>
 					</TabsList>
 					<TabsContent value="edit" className="flex-1 overflow-auto">
 						{editorPanel}
 					</TabsContent>
 					<TabsContent value="details" className="flex-1 overflow-auto">
 						{metadataPanel}
+					</TabsContent>
+					<TabsContent value="versions" className="flex-1 overflow-auto">
+						{versionsPanel}
 					</TabsContent>
 				</Tabs>
 			</div>

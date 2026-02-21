@@ -12,6 +12,7 @@ export type {
 	BlueprintListResult,
 	BlueprintWithBlockCount,
 	BlueprintWithBlocks,
+	BlueprintWithVersion,
 } from "./blueprint";
 export type {
 	ActionResult,
