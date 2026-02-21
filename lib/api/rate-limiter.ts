@@ -47,51 +47,63 @@ export interface RateLimitResult {
 
 /**
  * Check both per-minute and monthly rate limits for the given API key.
+ * Falls back to allowing all requests if Redis is unreachable (dev mode).
  */
 export async function checkRateLimit(
 	apiKeyId: string,
 	plan: Plan,
 ): Promise<RateLimitResult> {
-	const redis = getRedis();
-	const limits = PLAN_LIMITS[plan];
+	try {
+		const redis = getRedis();
+		const limits = PLAN_LIMITS[plan];
 
-	// Per-minute check via @upstash/ratelimit
-	const minuteResult = await getMinuteLimiter(plan).limit(apiKeyId);
+		// Per-minute check via @upstash/ratelimit
+		const minuteResult = await getMinuteLimiter(plan).limit(apiKeyId);
 
-	if (!minuteResult.success) {
+		if (!minuteResult.success) {
+			return {
+				allowed: false,
+				limit: minuteResult.limit,
+				remaining: minuteResult.remaining,
+				reset: minuteResult.reset,
+			};
+		}
+
+		// Monthly check via Redis INCR
+		const now = new Date();
+		const monthKey = `pv:rl:month:${apiKeyId}:${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+		const monthCount = await redis.incr(monthKey);
+
+		// Set TTL on first increment (32 days to cover month boundary)
+		if (monthCount === 1) {
+			await redis.expire(monthKey, 32 * 24 * 60 * 60);
+		}
+
+		if (monthCount > limits.perMonth) {
+			return {
+				allowed: false,
+				limit: limits.perMonth,
+				remaining: 0,
+				reset: getEndOfMonthTimestamp(),
+			};
+		}
+
 		return {
-			allowed: false,
+			allowed: true,
 			limit: minuteResult.limit,
 			remaining: minuteResult.remaining,
 			reset: minuteResult.reset,
 		};
-	}
-
-	// Monthly check via Redis INCR
-	const now = new Date();
-	const monthKey = `pv:rl:month:${apiKeyId}:${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-	const monthCount = await redis.incr(monthKey);
-
-	// Set TTL on first increment (32 days to cover month boundary)
-	if (monthCount === 1) {
-		await redis.expire(monthKey, 32 * 24 * 60 * 60);
-	}
-
-	if (monthCount > limits.perMonth) {
+	} catch {
+		// Redis unavailable — allow request in development
+		const limits = PLAN_LIMITS[plan];
 		return {
-			allowed: false,
-			limit: limits.perMonth,
-			remaining: 0,
-			reset: getEndOfMonthTimestamp(),
+			allowed: true,
+			limit: limits.perMinute,
+			remaining: limits.perMinute - 1,
+			reset: Date.now() + 60_000,
 		};
 	}
-
-	return {
-		allowed: true,
-		limit: minuteResult.limit,
-		remaining: minuteResult.remaining,
-		reset: minuteResult.reset,
-	};
 }
 
 /**

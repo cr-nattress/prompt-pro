@@ -133,7 +133,7 @@ try {
 				'00000000-0000-0000-0000-000000003002',
 				${promptId},
 				2,
-				'You are an expert code reviewer. Review the following code for bugs, performance issues, and best practices.\n\nLanguage: {{language}}\n\n```\n{{code}}\n```\n\nProvide your review in a structured format with sections for Issues, Suggestions, and Overall Assessment.',
+				${"You are an expert code reviewer. Review the following code for bugs, performance issues, and best practices.\n\nLanguage: {{language}}\n\n```\n{{code}}\n```\n\nProvide your review in a structured format with sections for Issues, Suggestions, and Overall Assessment."},
 				'gpt-4o',
 				'Enhanced with structured output and language parameter',
 				'draft'
@@ -161,7 +161,7 @@ try {
 	// To generate: echo -n "pv_test_devkey1234567890abcdef" | shasum -a 256
 	const apiKeyId = "00000000-0000-0000-0000-000000005001";
 	const devKeyHash =
-		"a1f0c3e4b5d6a7e8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2";
+		"30a59cabf69d20e74bf730cfa5155174930a9c7f78a4949df22296d0466cb516";
 	await sql`
 		INSERT INTO prompt.api_keys (id, workspace_id, key_hash, label, scopes, app_id)
 		VALUES (
