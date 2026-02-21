@@ -1,11 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { AppSelector } from "@/components/prompt/app-selector";
 import {
 	Form,
 	FormControl,
@@ -26,10 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 import type { App } from "@/lib/db/schema";
 import { slugify } from "@/lib/prompt-utils";
 import {
-	type PromptFormValues,
-	promptFormSchema,
-} from "@/lib/validations/prompt";
-import { AppSelector } from "./app-selector";
+	type BlueprintFormValues,
+	blueprintFormSchema,
+} from "@/lib/validations/blueprint";
 
 const LLM_OPTIONS = [
 	"gpt-4o",
@@ -41,41 +38,35 @@ const LLM_OPTIONS = [
 	"claude-3-haiku",
 ];
 
-const PURPOSE_OPTIONS = ["system", "user", "assistant", "function", "tool"];
-
-interface PromptMetadataFormProps {
+interface BlueprintMetadataFormProps {
 	apps: App[];
 	workspaceId: string;
-	defaultValues?: Partial<PromptFormValues>;
+	defaultValues?: Partial<BlueprintFormValues>;
 	isCreateMode: boolean;
-	onValuesChange: (values: Partial<PromptFormValues>) => void;
+	onValuesChange: (values: Partial<BlueprintFormValues>) => void;
 	formRef?: React.RefObject<ReturnType<
-		typeof useForm<PromptFormValues>
+		typeof useForm<BlueprintFormValues>
 	> | null>;
 }
 
-export function PromptMetadataForm({
+export function BlueprintMetadataForm({
 	apps,
 	workspaceId,
 	defaultValues,
 	isCreateMode,
 	onValuesChange,
 	formRef,
-}: PromptMetadataFormProps) {
-	const [tagInput, setTagInput] = useState("");
-
-	const form = useForm<PromptFormValues>({
-		resolver: zodResolver(promptFormSchema),
+}: BlueprintMetadataFormProps) {
+	const form = useForm<BlueprintFormValues>({
+		// biome-ignore lint/suspicious/noExplicitAny: zodResolver incompatible with exactOptionalPropertyTypes
+		resolver: zodResolver(blueprintFormSchema) as any,
 		defaultValues: {
 			name: "",
 			slug: "",
 			appId: apps[0]?.id ?? "",
-			purpose: undefined,
+			targetLlm: undefined,
+			totalTokenBudget: undefined,
 			description: undefined,
-			tags: [],
-			templateText: "",
-			llm: undefined,
-			changeNote: undefined,
 			...defaultValues,
 		},
 	});
@@ -98,28 +89,10 @@ export function PromptMetadataForm({
 	// Notify parent of value changes via subscription (avoids re-render loop)
 	useEffect(() => {
 		const subscription = form.watch((values) => {
-			onValuesChange(values as Partial<PromptFormValues>);
+			onValuesChange(values as Partial<BlueprintFormValues>);
 		});
 		return () => subscription.unsubscribe();
 	}, [form, onValuesChange]);
-
-	function addTag(tag: string) {
-		const trimmed = tag.trim().toLowerCase();
-		if (!trimmed) return;
-		const current = form.getValues("tags") ?? [];
-		if (!current.includes(trimmed)) {
-			form.setValue("tags", [...current, trimmed]);
-		}
-		setTagInput("");
-	}
-
-	function removeTag(tag: string) {
-		const current = form.getValues("tags") ?? [];
-		form.setValue(
-			"tags",
-			current.filter((t) => t !== tag),
-		);
-	}
 
 	return (
 		<Form {...form}>
@@ -129,9 +102,9 @@ export function PromptMetadataForm({
 					name="name"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Title</FormLabel>
+							<FormLabel>Name</FormLabel>
 							<FormControl>
-								<Input placeholder="My prompt" {...field} />
+								<Input placeholder="My blueprint" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -146,7 +119,7 @@ export function PromptMetadataForm({
 							<FormLabel>Slug</FormLabel>
 							<FormControl>
 								<Input
-									placeholder="my-prompt"
+									placeholder="my-blueprint"
 									{...field}
 									disabled={!isCreateMode}
 								/>
@@ -177,10 +150,10 @@ export function PromptMetadataForm({
 
 				<FormField
 					control={form.control}
-					name="llm"
+					name="targetLlm"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>LLM</FormLabel>
+							<FormLabel>Target LLM</FormLabel>
 							<Select
 								value={field.value ?? ""}
 								onValueChange={(v) => field.onChange(v || undefined)}
@@ -205,82 +178,20 @@ export function PromptMetadataForm({
 
 				<FormField
 					control={form.control}
-					name="purpose"
+					name="totalTokenBudget"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Purpose</FormLabel>
-							<Select
-								value={field.value ?? ""}
-								onValueChange={(v) => field.onChange(v || undefined)}
-							>
-								<FormControl>
-									<SelectTrigger>
-										<SelectValue placeholder="Select purpose" />
-									</SelectTrigger>
-								</FormControl>
-								<SelectContent>
-									{PURPOSE_OPTIONS.map((purpose) => (
-										<SelectItem key={purpose} value={purpose}>
-											{purpose}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<div className="flex flex-col gap-1.5">
-					<FormLabel>Tags</FormLabel>
-					<div className="flex items-center gap-2">
-						<Input
-							placeholder="Add tag..."
-							value={tagInput}
-							onChange={(e) => setTagInput(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									e.preventDefault();
-									addTag(tagInput);
-								}
-							}}
-						/>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={() => addTag(tagInput)}
-						>
-							Add
-						</Button>
-					</div>
-					<div className="flex flex-wrap gap-1">
-						{(form.watch("tags") ?? []).map((tag) => (
-							<Badge key={tag} variant="secondary" className="gap-1">
-								{tag}
-								<button
-									type="button"
-									onClick={() => removeTag(tag)}
-									className="rounded-full hover:bg-accent"
-								>
-									<X className="h-3 w-3" />
-								</button>
-							</Badge>
-						))}
-					</div>
-				</div>
-
-				<FormField
-					control={form.control}
-					name="description"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Description</FormLabel>
+							<FormLabel>Total Token Budget</FormLabel>
 							<FormControl>
-								<Textarea
-									placeholder="What does this prompt do?"
+								<Input
+									type="number"
+									placeholder="e.g. 8000"
 									{...field}
 									value={field.value ?? ""}
+									onChange={(e) => {
+										const val = e.target.value;
+										field.onChange(val ? Number(val) : undefined);
+									}}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -290,13 +201,13 @@ export function PromptMetadataForm({
 
 				<FormField
 					control={form.control}
-					name="changeNote"
+					name="description"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Change note</FormLabel>
+							<FormLabel>Description</FormLabel>
 							<FormControl>
-								<Input
-									placeholder="What changed?"
+								<Textarea
+									placeholder="What is this blueprint for?"
 									{...field}
 									value={field.value ?? ""}
 								/>

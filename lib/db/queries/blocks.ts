@@ -27,25 +27,23 @@ export async function createBlock(
 	return result[0]!;
 }
 
-export async function updateBlock(
-	id: string,
-	data: Partial<
-		Pick<
-			NewContextBlock,
-			| "type"
-			| "slug"
-			| "name"
-			| "description"
-			| "content"
-			| "parameters"
-			| "config"
-			| "position"
-			| "isRequired"
-			| "isConditional"
-			| "condition"
-		>
-	>,
-) {
+type BlockUpdateKeys =
+	| "type"
+	| "slug"
+	| "name"
+	| "description"
+	| "content"
+	| "parameters"
+	| "config"
+	| "position"
+	| "isRequired"
+	| "isConditional"
+	| "condition";
+type BlockUpdateData = {
+	[K in BlockUpdateKeys]?: NewContextBlock[K] | undefined;
+};
+
+export async function updateBlock(id: string, data: BlockUpdateData) {
 	const result = await db
 		.update(contextBlocks)
 		.set(data)
