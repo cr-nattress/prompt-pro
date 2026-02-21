@@ -15,12 +15,14 @@ import type { ContextBlock } from "@/lib/db/schema";
 import { showToast } from "@/lib/toast";
 import { countTokens } from "@/lib/token-utils";
 import { useBlueprintDesignerStore } from "@/stores/blueprint-designer-store";
+import { BlockWarningBadge } from "./block-warning-badge";
 
 interface BlockStackItemProps {
 	block: ContextBlock;
+	issueCount?: number;
 }
 
-export function BlockStackItem({ block }: BlockStackItemProps) {
+export function BlockStackItem({ block, issueCount = 0 }: BlockStackItemProps) {
 	const { selectedBlockId, selectBlock, removeBlockFromStore } =
 		useBlueprintDesignerStore();
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -118,6 +120,7 @@ export function BlockStackItem({ block }: BlockStackItemProps) {
 				</div>
 			</div>
 
+			<BlockWarningBadge issueCount={issueCount} />
 			<Button
 				variant="ghost"
 				size="icon-sm"

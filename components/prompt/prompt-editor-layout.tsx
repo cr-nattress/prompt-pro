@@ -11,15 +11,24 @@ import {
 	duplicatePromptAction,
 	updatePromptAction,
 } from "@/app/(dashboard)/prompts/actions";
+import {
+	analyzePromptAction,
+	enhancePromptAction,
+	getLatestAnalysisAction,
+} from "@/app/(dashboard)/prompts/analysis-actions";
 import { getPromptVersionsAction } from "@/app/(dashboard)/prompts/version-actions";
+import { AnalysisPanel } from "@/components/prompt/analysis/analysis-panel";
+import { EnhanceDiffDialog } from "@/components/prompt/analysis/enhance-diff-dialog";
 import { TokenCounter } from "@/components/prompt/editor/token-counter";
 import { PromptParameters } from "@/components/prompt/prompt-parameters";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
 	ResizableHandle,
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/version/status-badge";
 import { VersionBadge } from "@/components/version/version-badge";
@@ -28,6 +37,7 @@ import type { App } from "@/lib/db/schema";
 import { extractParameters } from "@/lib/prompt-utils";
 import { showToast } from "@/lib/toast";
 import type { PromptFormValues } from "@/lib/validations/prompt";
+import { useAnalysisStore } from "@/stores/analysis-store";
 import { useEditorStore } from "@/stores/editor-store";
 import type { PromptWithVersion } from "@/types";
 import { PromptEditor } from "./editor";
@@ -60,18 +70,48 @@ export function PromptEditorLayout({
 		setDetectedParameters,
 		reset,
 	} = useEditorStore();
+	const {
+		analysis,
+		isAnalyzing,
+		isEnhancing,
+		enhancedText,
+		changesSummary,
+		error: analysisError,
+		setAnalysis,
+		setAnalyzing,
+		setEnhancing,
+		setEnhancedText,
+		setError: setAnalysisError,
+		reset: resetAnalysis,
+	} = useAnalysisStore();
 	const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const [templateText, setTemplateText] = useState(
 		prompt?.latestVersion?.templateText ?? "",
 	);
 	const [formValues, setFormValues] = useState<Partial<PromptFormValues>>({});
+	const [enhanceDiffOpen, setEnhanceDiffOpen] = useState(false);
+	const [showAmbiguities, setShowAmbiguities] = useState(false);
 	const initialTemplateRef = useRef(templateText);
 
 	// Reset editor store on mount/unmount
 	useEffect(() => {
 		reset();
-		return () => reset();
-	}, [reset]);
+		resetAnalysis();
+		return () => {
+			reset();
+			resetAnalysis();
+		};
+	}, [reset, resetAnalysis]);
+
+	// Load cached analysis on mount
+	useEffect(() => {
+		if (mode !== "edit" || !prompt) return;
+		getLatestAnalysisAction(prompt.id).then((result) => {
+			if (result.success && result.data) {
+				setAnalysis(result.data);
+			}
+		});
+	}, [mode, prompt, setAnalysis]);
 
 	// Update detected parameters when template text changes
 	useEffect(() => {
@@ -212,6 +252,55 @@ export function PromptEditorLayout({
 		}
 	}
 
+	async function handleAnalyze() {
+		if (!prompt) return;
+		setAnalyzing(true);
+		setAnalysisError(null);
+		const metadata: { name?: string; purpose?: string; description?: string } =
+			{
+				name: formValues.name ?? prompt.name,
+			};
+		const purpose = formValues.purpose ?? prompt.purpose;
+		if (purpose) metadata.purpose = purpose;
+		const description = formValues.description ?? prompt.description;
+		if (description) metadata.description = description;
+		const result = await analyzePromptAction(prompt.id, templateText, metadata);
+		setAnalyzing(false);
+		if (result.success) {
+			setAnalysis(result.data);
+		} else {
+			setAnalysisError(result.error);
+		}
+	}
+
+	async function handleEnhance() {
+		if (!prompt) return;
+		setEnhancing(true);
+		setAnalysisError(null);
+		const result = await enhancePromptAction(
+			prompt.id,
+			templateText,
+			analysis?.weaknesses ?? undefined,
+			analysis?.suggestions ?? undefined,
+		);
+		setEnhancing(false);
+		if (result.success) {
+			setEnhancedText(result.data.enhancedText, result.data.changesSummary);
+			setEnhanceDiffOpen(true);
+		} else {
+			setAnalysisError(result.error);
+		}
+	}
+
+	function handleApplyEnhancement() {
+		if (enhancedText) {
+			setTemplateText(enhancedText);
+			setDirty(true);
+			setEnhancedText(null, []);
+			showToast("success", "Enhanced prompt applied");
+		}
+	}
+
 	const detectedParams = extractParameters(templateText);
 	const defaultValues: Partial<PromptFormValues> = prompt
 		? {
@@ -301,10 +390,27 @@ export function PromptEditorLayout({
 					value={templateText}
 					onChange={handleTemplateChange}
 					parameters={detectedParams}
+					showAmbiguities={showAmbiguities}
 				/>
 			</div>
 			<div className="flex items-center justify-between border-t px-4 py-2">
-				<PromptParameters parameters={detectedParams} />
+				<div className="flex items-center gap-4">
+					<PromptParameters parameters={detectedParams} />
+					<div className="flex items-center gap-1.5">
+						<Switch
+							id="ambiguity-toggle"
+							checked={showAmbiguities}
+							onCheckedChange={setShowAmbiguities}
+							className="scale-75"
+						/>
+						<Label
+							htmlFor="ambiguity-toggle"
+							className="cursor-pointer text-muted-foreground text-xs"
+						>
+							Ambiguities
+						</Label>
+					</div>
+				</div>
 				<TokenCounter text={templateText} model={formValues.llm ?? "gpt-4o"} />
 			</div>
 		</div>
@@ -323,6 +429,21 @@ export function PromptEditorLayout({
 		</div>
 	);
 
+	const analysisPanel = (
+		<AnalysisPanel
+			analysis={analysis}
+			isAnalyzing={isAnalyzing}
+			isEnhancing={isEnhancing}
+			error={analysisError}
+			onAnalyze={handleAnalyze}
+			onEnhance={handleEnhance}
+			onAppendSuggestion={(snippet) => {
+				setTemplateText((prev) => prev + snippet);
+				setDirty(true);
+			}}
+		/>
+	);
+
 	const versionsPanel = prompt ? (
 		<VersionPanel
 			entityId={prompt.id}
@@ -330,6 +451,25 @@ export function PromptEditorLayout({
 			fetchVersions={getPromptVersionsAction}
 		/>
 	) : null;
+
+	const rightPanelTabbed = (
+		<Tabs defaultValue="details" className="flex h-full flex-col">
+			<TabsList className="mx-4 mt-2 shrink-0">
+				<TabsTrigger value="details">Details</TabsTrigger>
+				{mode === "edit" && (
+					<TabsTrigger value="analysis">Analysis</TabsTrigger>
+				)}
+			</TabsList>
+			<TabsContent value="details" className="flex-1 overflow-auto">
+				{metadataPanel}
+			</TabsContent>
+			{mode === "edit" && (
+				<TabsContent value="analysis" className="flex-1 overflow-auto">
+					{analysisPanel}
+				</TabsContent>
+			)}
+		</Tabs>
+	);
 
 	return (
 		<div className="flex h-[calc(100vh-4rem)] flex-col">
@@ -343,7 +483,7 @@ export function PromptEditorLayout({
 					</ResizablePanel>
 					<ResizableHandle withHandle />
 					<ResizablePanel defaultSize={40} minSize={25}>
-						{metadataPanel}
+						{rightPanelTabbed}
 					</ResizablePanel>
 				</ResizablePanelGroup>
 			</div>
@@ -354,6 +494,9 @@ export function PromptEditorLayout({
 					<TabsList className="mx-4 mt-2">
 						<TabsTrigger value="edit">Edit</TabsTrigger>
 						<TabsTrigger value="details">Details</TabsTrigger>
+						{mode === "edit" && (
+							<TabsTrigger value="analysis">Analysis</TabsTrigger>
+						)}
 						<TabsTrigger value="versions">Versions</TabsTrigger>
 					</TabsList>
 					<TabsContent value="edit" className="flex-1 overflow-auto">
@@ -362,11 +505,26 @@ export function PromptEditorLayout({
 					<TabsContent value="details" className="flex-1 overflow-auto">
 						{metadataPanel}
 					</TabsContent>
+					{mode === "edit" && (
+						<TabsContent value="analysis" className="flex-1 overflow-auto">
+							{analysisPanel}
+						</TabsContent>
+					)}
 					<TabsContent value="versions" className="flex-1 overflow-auto">
 						{versionsPanel}
 					</TabsContent>
 				</Tabs>
 			</div>
+
+			{/* Enhance diff dialog */}
+			<EnhanceDiffDialog
+				open={enhanceDiffOpen}
+				onOpenChange={setEnhanceDiffOpen}
+				originalText={templateText}
+				enhancedText={enhancedText ?? ""}
+				changesSummary={changesSummary}
+				onApply={handleApplyEnhancement}
+			/>
 		</div>
 	);
 }

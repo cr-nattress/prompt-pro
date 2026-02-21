@@ -16,6 +16,11 @@ import {
 } from "@codemirror/view";
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
+import {
+	ambiguityDecoration,
+	ambiguityTheme,
+	ambiguityTooltip,
+} from "./ambiguity-extension";
 import { createParameterCompletion } from "./parameter-autocomplete";
 import {
 	parameterDecoration,
@@ -29,16 +34,19 @@ interface PromptEditorProps {
 	onChange?: (value: string) => void;
 	parameters?: string[];
 	readOnly?: boolean;
+	showAmbiguities?: boolean;
 }
 
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
+const ambiguityCompartment = new Compartment();
 
 export default function PromptEditor({
 	value,
 	onChange,
 	parameters = [],
 	readOnly = false,
+	showAmbiguities = false,
 }: PromptEditorProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -74,6 +82,10 @@ export default function PromptEditor({
 				autocompletion({
 					override: [createParameterCompletion(parameters)],
 				}),
+				ambiguityTheme,
+				ambiguityCompartment.of(
+					showAmbiguities ? [ambiguityDecoration, ambiguityTooltip] : [],
+				),
 				themeCompartment.of(isDark ? promptEditorDark : promptEditorLight),
 				readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
 				EditorView.updateListener.of((update) => {
@@ -123,6 +135,18 @@ export default function PromptEditor({
 			),
 		});
 	}, [readOnly]);
+
+	// Sync ambiguity detection
+	useEffect(() => {
+		const view = viewRef.current;
+		if (!view) return;
+
+		view.dispatch({
+			effects: ambiguityCompartment.reconfigure(
+				showAmbiguities ? [ambiguityDecoration, ambiguityTooltip] : [],
+			),
+		});
+	}, [showAmbiguities]);
 
 	// Sync value from outside (only when it differs from editor state)
 	useEffect(() => {

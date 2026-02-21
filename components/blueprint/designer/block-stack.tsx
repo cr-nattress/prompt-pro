@@ -16,6 +16,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { reorderBlocksAction } from "@/app/(dashboard)/blueprints/actions";
+import { useBlueprintAnalysisStore } from "@/stores/blueprint-analysis-store";
 import { useBlueprintDesignerStore } from "@/stores/blueprint-designer-store";
 import { AddBlockCard } from "./add-block-card";
 import { BlockStackItem } from "./block-stack-item";
@@ -26,6 +27,14 @@ interface BlockStackProps {
 
 export function BlockStack({ blueprintId }: BlockStackProps) {
 	const { blocks, reorderBlocksInStore } = useBlueprintDesignerStore();
+	const { blockFeedback } = useBlueprintAnalysisStore();
+
+	const issuesBySlug = new Map<string, number>();
+	for (const fb of blockFeedback) {
+		if (fb.issues.length > 0) {
+			issuesBySlug.set(fb.slug, fb.issues.length);
+		}
+	}
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -68,7 +77,11 @@ export function BlockStack({ blueprintId }: BlockStackProps) {
 					strategy={verticalListSortingStrategy}
 				>
 					{blocks.map((block) => (
-						<BlockStackItem key={block.id} block={block} />
+						<BlockStackItem
+							key={block.id}
+							block={block}
+							issueCount={issuesBySlug.get(block.slug) ?? 0}
+						/>
 					))}
 				</SortableContext>
 			</DndContext>

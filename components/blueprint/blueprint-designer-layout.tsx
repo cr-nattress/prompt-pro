@@ -19,9 +19,14 @@ import {
 	updateBlueprintAction,
 } from "@/app/(dashboard)/blueprints/actions";
 import {
+	analyzeBlueprintAction,
+	getLatestBlueprintAnalysisAction,
+} from "@/app/(dashboard)/blueprints/analysis-actions";
+import {
 	createBlueprintVersionAction,
 	getBlueprintVersionsAction,
 } from "@/app/(dashboard)/blueprints/version-actions";
+import { BlueprintAnalysisPanel } from "@/components/blueprint/analysis/blueprint-analysis-panel";
 import { Button } from "@/components/ui/button";
 import {
 	ResizableHandle,
@@ -31,9 +36,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VersionPanel } from "@/components/version/version-panel";
+import type { BlockFeedback } from "@/lib/ai";
 import type { App } from "@/lib/db/schema";
 import { showToast } from "@/lib/toast";
 import type { BlueprintFormValues } from "@/lib/validations/blueprint";
+import { useBlueprintAnalysisStore } from "@/stores/blueprint-analysis-store";
 import { useBlueprintDesignerStore } from "@/stores/blueprint-designer-store";
 import type { BlueprintWithBlocks } from "@/types";
 import { BlueprintMetadataForm } from "./blueprint-metadata-form";
@@ -71,6 +78,17 @@ export function BlueprintDesignerLayout({
 		setLastSavedAt,
 		reset,
 	} = useBlueprintDesignerStore();
+	const {
+		analysis: bpAnalysis,
+		blockFeedback: bpBlockFeedback,
+		isAnalyzing: bpIsAnalyzing,
+		error: bpAnalysisError,
+		setAnalysis: setBpAnalysis,
+		setBlockFeedback: setBpBlockFeedback,
+		setAnalyzing: setBpAnalyzing,
+		setError: setBpAnalysisError,
+		reset: resetBpAnalysis,
+	} = useBlueprintAnalysisStore();
 	const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const [formValues, setFormValues] = useState<Partial<BlueprintFormValues>>(
 		{},
@@ -82,8 +100,32 @@ export function BlueprintDesignerLayout({
 		if (blueprint?.blocks) {
 			setBlocks(blueprint.blocks);
 		}
-		return () => reset();
-	}, [blueprint?.blocks, setBlocks, reset]);
+		return () => {
+			reset();
+			resetBpAnalysis();
+		};
+	}, [blueprint?.blocks, setBlocks, reset, resetBpAnalysis]);
+
+	// Load cached blueprint analysis on mount
+	useEffect(() => {
+		if (mode !== "edit" || !blueprint) return;
+		getLatestBlueprintAnalysisAction(blueprint.id).then((result) => {
+			if (result.success && result.data) {
+				setBpAnalysis(result.data);
+				// Parse stored block feedback from enhancedPromptText
+				if (result.data.enhancedPromptText) {
+					try {
+						const feedback = JSON.parse(
+							result.data.enhancedPromptText,
+						) as BlockFeedback[];
+						setBpBlockFeedback(feedback);
+					} catch {
+						// Invalid JSON — skip
+					}
+				}
+			}
+		});
+	}, [mode, blueprint, setBpAnalysis, setBpBlockFeedback]);
 
 	const handleFormValuesChange = useCallback(
 		(values: Partial<BlueprintFormValues>) => {
@@ -186,6 +228,59 @@ export function BlueprintDesignerLayout({
 		}
 	}
 
+	async function handleAnalyzeBlueprint() {
+		if (!blueprint) return;
+		setBpAnalyzing(true);
+		setBpAnalysisError(null);
+
+		const { blocks } = useBlueprintDesignerStore.getState();
+		const blockInputs = blocks.map((b) => ({
+			slug: b.slug,
+			name: b.name,
+			type: b.type,
+			content: b.content,
+			position: b.position,
+			isRequired: b.isRequired,
+			isConditional: b.isConditional,
+			condition: b.condition,
+		}));
+
+		const metadata: {
+			name?: string;
+			description?: string;
+			targetLlm?: string;
+			totalTokenBudget?: number;
+		} = { name: formValues.name ?? blueprint.name };
+		const desc = formValues.description ?? blueprint.description;
+		if (desc) metadata.description = desc;
+		const llm = formValues.targetLlm ?? blueprint.targetLlm;
+		if (llm) metadata.targetLlm = llm;
+		const budget = formValues.totalTokenBudget ?? blueprint.totalTokenBudget;
+		if (budget) metadata.totalTokenBudget = budget;
+
+		const result = await analyzeBlueprintAction(
+			blueprint.id,
+			blockInputs,
+			metadata,
+		);
+		setBpAnalyzing(false);
+		if (result.success) {
+			setBpAnalysis(result.data);
+			if (result.data.enhancedPromptText) {
+				try {
+					const feedback = JSON.parse(
+						result.data.enhancedPromptText,
+					) as BlockFeedback[];
+					setBpBlockFeedback(feedback);
+				} catch {
+					// Invalid JSON — skip
+				}
+			}
+		} else {
+			setBpAnalysisError(result.error);
+		}
+	}
+
 	const defaultValues: Partial<BlueprintFormValues> = blueprint
 		? {
 				name: blueprint.name,
@@ -270,16 +365,35 @@ export function BlueprintDesignerLayout({
 			targetLlm={formValues.targetLlm}
 		/>
 	) : (
-		<div className="overflow-auto">
-			<BlueprintMetadataForm
-				apps={apps}
-				workspaceId={workspaceId}
-				defaultValues={defaultValues}
-				isCreateMode={mode === "create"}
-				onValuesChange={handleFormValuesChange}
-				formRef={formRef}
-			/>
-		</div>
+		<Tabs defaultValue="settings" className="flex h-full flex-col">
+			<TabsList className="mx-4 mt-2 shrink-0">
+				<TabsTrigger value="settings">Settings</TabsTrigger>
+				{mode === "edit" && (
+					<TabsTrigger value="analysis">Analysis</TabsTrigger>
+				)}
+			</TabsList>
+			<TabsContent value="settings" className="flex-1 overflow-auto">
+				<BlueprintMetadataForm
+					apps={apps}
+					workspaceId={workspaceId}
+					defaultValues={defaultValues}
+					isCreateMode={mode === "create"}
+					onValuesChange={handleFormValuesChange}
+					formRef={formRef}
+				/>
+			</TabsContent>
+			{mode === "edit" && (
+				<TabsContent value="analysis" className="flex-1 overflow-auto">
+					<BlueprintAnalysisPanel
+						analysis={bpAnalysis}
+						blockFeedback={bpBlockFeedback}
+						isAnalyzing={bpIsAnalyzing}
+						error={bpAnalysisError}
+						onAnalyze={handleAnalyzeBlueprint}
+					/>
+				</TabsContent>
+			)}
+		</Tabs>
 	);
 
 	const leftPanel = (
