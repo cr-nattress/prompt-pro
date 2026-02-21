@@ -8,13 +8,13 @@ import {
 } from "@/lib/db/schema";
 
 interface PromptFilters {
-	search?: string;
-	purpose?: string;
-	tag?: string;
-	sort?: "name" | "createdAt" | "updatedAt";
-	order?: "asc" | "desc";
-	page?: number;
-	pageSize?: number;
+	search?: string | undefined;
+	purpose?: string | undefined;
+	tag?: string | undefined;
+	sort?: "name" | "createdAt" | "updatedAt" | undefined;
+	order?: "asc" | "desc" | undefined;
+	page?: number | undefined;
+	pageSize?: number | undefined;
 }
 
 export async function getPromptsByWorkspace(
@@ -132,12 +132,15 @@ export async function createPrompt(
 
 export async function updatePrompt(
 	id: string,
-	data: Partial<
-		Pick<
-			NewPromptTemplate,
-			"slug" | "name" | "purpose" | "description" | "tags" | "parameterSchema"
-		>
-	>,
+	data: {
+		[K in
+			| "slug"
+			| "name"
+			| "purpose"
+			| "description"
+			| "tags"
+			| "parameterSchema"]?: NewPromptTemplate[K] | undefined;
+	},
 ) {
 	const result = await db
 		.update(promptTemplates)
@@ -200,4 +203,135 @@ export async function promoteVersion(
 		.where(eq(promptVersions.id, versionId))
 		.returning();
 	return result[0] ?? null;
+}
+
+export async function getPromptBySlugInWorkspace(
+	workspaceId: string,
+	slug: string,
+) {
+	const result = await db
+		.select()
+		.from(promptTemplates)
+		.where(
+			and(
+				eq(promptTemplates.workspaceId, workspaceId),
+				eq(promptTemplates.slug, slug),
+			),
+		)
+		.limit(1);
+
+	const template = result[0];
+	if (!template) return null;
+
+	const latestVersion = await db
+		.select()
+		.from(promptVersions)
+		.where(eq(promptVersions.promptTemplateId, template.id))
+		.orderBy(desc(promptVersions.version))
+		.limit(1);
+
+	return {
+		...template,
+		latestVersion: latestVersion[0] ?? null,
+	};
+}
+
+export async function getPromptById(id: string) {
+	const result = await db
+		.select()
+		.from(promptTemplates)
+		.where(eq(promptTemplates.id, id))
+		.limit(1);
+
+	const template = result[0];
+	if (!template) return null;
+
+	const latestVersion = await db
+		.select()
+		.from(promptVersions)
+		.where(eq(promptVersions.promptTemplateId, template.id))
+		.orderBy(desc(promptVersions.version))
+		.limit(1);
+
+	return {
+		...template,
+		latestVersion: latestVersion[0] ?? null,
+	};
+}
+
+export async function getPromptsWithLatestVersion(
+	workspaceId: string,
+	filters: PromptFilters = {},
+) {
+	const {
+		search,
+		purpose,
+		tag,
+		sort = "updatedAt",
+		order = "desc",
+		page = 1,
+		pageSize = 20,
+	} = filters;
+
+	const conditions = [eq(promptTemplates.workspaceId, workspaceId)];
+
+	if (search) {
+		const searchCondition = or(
+			ilike(promptTemplates.name, `%${search}%`),
+			ilike(promptTemplates.description, `%${search}%`),
+		);
+		if (searchCondition) conditions.push(searchCondition);
+	}
+
+	if (purpose) {
+		conditions.push(eq(promptTemplates.purpose, purpose));
+	}
+
+	if (tag) {
+		conditions.push(sql`${tag} = ANY(${promptTemplates.tags})`);
+	}
+
+	const orderFn = order === "asc" ? asc : desc;
+	const sortColumn =
+		sort === "name"
+			? promptTemplates.name
+			: sort === "createdAt"
+				? promptTemplates.createdAt
+				: promptTemplates.updatedAt;
+
+	const whereClause = and(...conditions);
+
+	const [items, totalResult] = await Promise.all([
+		db
+			.select()
+			.from(promptTemplates)
+			.where(whereClause)
+			.orderBy(orderFn(sortColumn))
+			.limit(pageSize)
+			.offset((page - 1) * pageSize),
+		db.select({ total: count() }).from(promptTemplates).where(whereClause),
+	]);
+
+	// Fetch latest version for each template
+	const itemsWithVersions = await Promise.all(
+		items.map(async (template) => {
+			const version = await db
+				.select()
+				.from(promptVersions)
+				.where(eq(promptVersions.promptTemplateId, template.id))
+				.orderBy(desc(promptVersions.version))
+				.limit(1);
+			return {
+				...template,
+				latestVersion: version[0] ?? null,
+			};
+		}),
+	);
+
+	return {
+		items: itemsWithVersions,
+		total: totalResult[0]?.total ?? 0,
+		page,
+		pageSize,
+	};
 }

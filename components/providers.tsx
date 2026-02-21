@@ -3,6 +3,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { ThemeProvider } from "next-themes";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -58,7 +59,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				defaultTheme="dark"
 				disableTransitionOnChange
 			>
-				<TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+				<NuqsAdapter>
+					<TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+				</NuqsAdapter>
 				<Toaster />
 			</ThemeProvider>
 		</AuthProvider>

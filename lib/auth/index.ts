@@ -4,7 +4,7 @@ import { getWorkspacesByUserId } from "@/lib/db/queries/workspaces";
 import type { AuthContext, AuthUser, Workspace } from "@/types/auth";
 
 const MOCK_USER: AuthUser = {
-	id: "dev_user_001",
+	id: "00000000-0000-0000-0000-000000000001",
 	clerkId: "dev_clerk_001",
 	email: "dev@localhost",
 	name: "Dev User",
@@ -15,10 +15,10 @@ const MOCK_USER: AuthUser = {
 };
 
 const MOCK_WORKSPACE: Workspace = {
-	id: "ws_dev_001",
+	id: "00000000-0000-0000-0000-000000000010",
 	slug: "dev",
 	name: "Dev Workspace",
-	ownerId: "dev_user_001",
+	ownerId: "00000000-0000-0000-0000-000000000001",
 	plan: "free",
 	createdAt: new Date("2025-01-01"),
 };

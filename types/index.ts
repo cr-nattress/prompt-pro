@@ -8,3 +8,9 @@ export type {
 	Workspace,
 	WorkspacePlan,
 } from "./auth";
+
+export type {
+	ActionResult,
+	PromptListResult,
+	PromptWithVersion,
+} from "./prompt";
