@@ -157,6 +157,25 @@ try {
 	`;
 	console.log("  Sample blueprint version seeded");
 
+	// Seed a dev API key (SHA-256 hash of "pv_test_devkey1234567890abcdef")
+	// To generate: echo -n "pv_test_devkey1234567890abcdef" | shasum -a 256
+	const apiKeyId = "00000000-0000-0000-0000-000000005001";
+	const devKeyHash =
+		"a1f0c3e4b5d6a7e8f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2";
+	await sql`
+		INSERT INTO prompt.api_keys (id, workspace_id, key_hash, label, scopes, app_id)
+		VALUES (
+			${apiKeyId},
+			${workspaceId},
+			${devKeyHash},
+			'Dev Test Key',
+			ARRAY['read', 'resolve', 'write', 'admin'],
+			NULL
+		)
+		ON CONFLICT (id) DO NOTHING
+	`;
+	console.log("  Dev API key seeded");
+
 	console.log("Dev seed complete!");
 } catch (err) {
 	console.error("Seed failed:", err.message);

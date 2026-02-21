@@ -243,6 +243,40 @@ export async function restorePromptVersion(
 	});
 }
 
+export async function getPromptVersionByStatus(
+	promptTemplateId: string,
+	status: "active" | "stable" | "deprecated",
+) {
+	const result = await db
+		.select()
+		.from(promptVersions)
+		.where(
+			and(
+				eq(promptVersions.promptTemplateId, promptTemplateId),
+				eq(promptVersions.status, status),
+			),
+		)
+		.limit(1);
+	return result[0] ?? null;
+}
+
+export async function getPromptVersionByNumber(
+	promptTemplateId: string,
+	version: number,
+) {
+	const result = await db
+		.select()
+		.from(promptVersions)
+		.where(
+			and(
+				eq(promptVersions.promptTemplateId, promptTemplateId),
+				eq(promptVersions.version, version),
+			),
+		)
+		.limit(1);
+	return result[0] ?? null;
+}
+
 export async function getPromptBySlugInWorkspace(
 	workspaceId: string,
 	slug: string,

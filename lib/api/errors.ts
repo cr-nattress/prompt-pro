@@ -1,0 +1,25 @@
+export const ApiErrorCode = {
+	UNAUTHORIZED: "UNAUTHORIZED",
+	FORBIDDEN: "FORBIDDEN",
+	SCOPE_REQUIRED: "SCOPE_REQUIRED",
+	KEY_EXPIRED: "KEY_EXPIRED",
+	NOT_FOUND: "NOT_FOUND",
+	CONFLICT: "CONFLICT",
+	VALIDATION_ERROR: "VALIDATION_ERROR",
+	RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
+	INTERNAL_ERROR: "INTERNAL_ERROR",
+} as const;
+
+export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
+
+export const API_ERROR_STATUS: Record<ApiErrorCode, number> = {
+	[ApiErrorCode.UNAUTHORIZED]: 401,
+	[ApiErrorCode.FORBIDDEN]: 403,
+	[ApiErrorCode.SCOPE_REQUIRED]: 403,
+	[ApiErrorCode.KEY_EXPIRED]: 401,
+	[ApiErrorCode.NOT_FOUND]: 404,
+	[ApiErrorCode.CONFLICT]: 409,
+	[ApiErrorCode.VALIDATION_ERROR]: 400,
+	[ApiErrorCode.RATE_LIMIT_EXCEEDED]: 429,
+	[ApiErrorCode.INTERNAL_ERROR]: 500,
+};

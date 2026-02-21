@@ -67,6 +67,40 @@ export async function createBlueprintVersion(
 	return result[0]!;
 }
 
+export async function getBlueprintVersionByStatus(
+	blueprintId: string,
+	status: "active" | "stable" | "deprecated",
+) {
+	const result = await db
+		.select()
+		.from(blueprintVersions)
+		.where(
+			and(
+				eq(blueprintVersions.blueprintId, blueprintId),
+				eq(blueprintVersions.status, status),
+			),
+		)
+		.limit(1);
+	return result[0] ?? null;
+}
+
+export async function getBlueprintVersionByNumber(
+	blueprintId: string,
+	version: number,
+) {
+	const result = await db
+		.select()
+		.from(blueprintVersions)
+		.where(
+			and(
+				eq(blueprintVersions.blueprintId, blueprintId),
+				eq(blueprintVersions.version, version),
+			),
+		)
+		.limit(1);
+	return result[0] ?? null;
+}
+
 export async function promoteBlueprintVersion(
 	versionId: string,
 	blueprintId: string,
