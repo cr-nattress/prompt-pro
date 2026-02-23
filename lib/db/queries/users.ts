@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { type NewUser, users } from "@/lib/db/schema";
 
@@ -40,4 +40,38 @@ export async function deleteUser(clerkId: string) {
 		.where(eq(users.clerkId, clerkId))
 		.returning();
 	return result[0] ?? null;
+}
+
+export async function getUserById(id: string) {
+	const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+	return result[0] ?? null;
+}
+
+export async function markOnboardingComplete(userId: string) {
+	const result = await db
+		.update(users)
+		.set({ onboardingComplete: true })
+		.where(eq(users.id, userId))
+		.returning();
+	return result[0] ?? null;
+}
+
+export async function dismissLesson(userId: string, lessonId: string) {
+	const result = await db
+		.update(users)
+		.set({
+			dismissedLessons: sql`array_append(${users.dismissedLessons}, ${lessonId})`,
+		})
+		.where(eq(users.id, userId))
+		.returning();
+	return result[0] ?? null;
+}
+
+export async function getDismissedLessons(userId: string): Promise<string[]> {
+	const result = await db
+		.select({ dismissedLessons: users.dismissedLessons })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	return result[0]?.dismissedLessons ?? [];
 }

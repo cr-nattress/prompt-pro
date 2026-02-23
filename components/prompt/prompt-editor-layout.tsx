@@ -1,6 +1,15 @@
 "use client";
 
-import { ChevronLeft, Copy, History, Loader2, Save } from "lucide-react";
+import {
+	ChevronLeft,
+	Copy,
+	FlaskConical,
+	History,
+	Loader2,
+	Minimize2,
+	Save,
+	Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,12 +22,24 @@ import {
 } from "@/app/(dashboard)/prompts/actions";
 import {
 	analyzePromptAction,
+	type CompressResult,
+	compressPromptAction,
 	enhancePromptAction,
 	getLatestAnalysisAction,
 } from "@/app/(dashboard)/prompts/analysis-actions";
+import {
+	type ExpertRewriteResult,
+	expertRewriteAction,
+} from "@/app/(dashboard)/prompts/expert-actions";
 import { getPromptVersionsAction } from "@/app/(dashboard)/prompts/version-actions";
 import { AnalysisPanel } from "@/components/prompt/analysis/analysis-panel";
+import { CompressDiffDialog } from "@/components/prompt/analysis/compress-diff-dialog";
 import { EnhanceDiffDialog } from "@/components/prompt/analysis/enhance-diff-dialog";
+import { ExpertViewDialog } from "@/components/prompt/analysis/expert-view-dialog";
+import { CoachSidebar } from "@/components/prompt/editor/coach-sidebar";
+import { FormatEnforcerPanel } from "@/components/prompt/editor/format-enforcer-panel";
+import { LinterConfig } from "@/components/prompt/editor/linter-config";
+import { LinterPanel } from "@/components/prompt/editor/linter-panel";
 import { TokenCounter } from "@/components/prompt/editor/token-counter";
 import { PromptParameters } from "@/components/prompt/prompt-parameters";
 import { Button } from "@/components/ui/button";
@@ -34,11 +55,13 @@ import { StatusBadge } from "@/components/version/status-badge";
 import { VersionBadge } from "@/components/version/version-badge";
 import { VersionPanel } from "@/components/version/version-panel";
 import type { App } from "@/lib/db/schema";
+import { type LintViolation, runLinter } from "@/lib/linter/rules";
 import { extractParameters } from "@/lib/prompt-utils";
 import { showToast } from "@/lib/toast";
 import type { PromptFormValues } from "@/lib/validations/prompt";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useEditorStore } from "@/stores/editor-store";
+import { useLinterStore } from "@/stores/linter-store";
 import type { PromptWithVersion } from "@/types";
 import { PromptEditor } from "./editor";
 import { PromptMetadataForm } from "./prompt-metadata-form";
@@ -84,13 +107,27 @@ export function PromptEditorLayout({
 		setError: setAnalysisError,
 		reset: resetAnalysis,
 	} = useAnalysisStore();
+	const { enabledRules, maxTokens: linterMaxTokens } = useLinterStore();
 	const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const [templateText, setTemplateText] = useState(
 		prompt?.latestVersion?.templateText ?? "",
 	);
 	const [formValues, setFormValues] = useState<Partial<PromptFormValues>>({});
 	const [enhanceDiffOpen, setEnhanceDiffOpen] = useState(false);
+	const [compressDiffOpen, setCompressDiffOpen] = useState(false);
+	const [compressResult, setCompressResult] = useState<CompressResult | null>(
+		null,
+	);
+	const [isCompressing, setIsCompressing] = useState(false);
+	const [isExpertRewriting, setIsExpertRewriting] = useState(false);
+	const [expertResult, setExpertResult] = useState<ExpertRewriteResult | null>(
+		null,
+	);
+	const [expertViewOpen, setExpertViewOpen] = useState(false);
 	const [showAmbiguities, setShowAmbiguities] = useState(false);
+	const [ghostTextEnabled, setGhostTextEnabled] = useState(false);
+	const [lintViolations, setLintViolations] = useState<LintViolation[]>([]);
+	const lintTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const initialTemplateRef = useRef(templateText);
 
 	// Reset editor store on mount/unmount
@@ -118,6 +155,25 @@ export function PromptEditorLayout({
 		const params = extractParameters(templateText);
 		setDetectedParameters(params);
 	}, [templateText, setDetectedParameters]);
+
+	// Debounced linter — runs 1s after text changes or config changes
+	useEffect(() => {
+		if (lintTimerRef.current) clearTimeout(lintTimerRef.current);
+		lintTimerRef.current = setTimeout(() => {
+			if (templateText.trim() && enabledRules.size > 0) {
+				setLintViolations(
+					runLinter(templateText, enabledRules, {
+						maxTokens: linterMaxTokens,
+					}),
+				);
+			} else {
+				setLintViolations([]);
+			}
+		}, 1000);
+		return () => {
+			if (lintTimerRef.current) clearTimeout(lintTimerRef.current);
+		};
+	}, [templateText, enabledRules, linterMaxTokens]);
 
 	const handleTemplateChange = useCallback(
 		(value: string) => {
@@ -301,6 +357,54 @@ export function PromptEditorLayout({
 		}
 	}
 
+	async function handleCompress() {
+		if (!templateText.trim()) return;
+		setIsCompressing(true);
+		const result = await compressPromptAction(templateText);
+		setIsCompressing(false);
+		if (result.success) {
+			setCompressResult(result.data);
+			setCompressDiffOpen(true);
+		} else {
+			showToast("error", result.error);
+		}
+	}
+
+	function handleApplyCompression() {
+		if (compressResult) {
+			setTemplateText(compressResult.compressedText);
+			setDirty(true);
+			showToast(
+				"success",
+				`Prompt compressed (saved ~${compressResult.savings} tokens)`,
+			);
+			setCompressResult(null);
+		}
+	}
+
+	async function handleExpertRewrite() {
+		if (!templateText.trim()) return;
+		setIsExpertRewriting(true);
+		setAnalysisError(null);
+		const result = await expertRewriteAction(templateText);
+		setIsExpertRewriting(false);
+		if (result.success) {
+			setExpertResult(result.data);
+			setExpertViewOpen(true);
+		} else {
+			setAnalysisError(result.error);
+		}
+	}
+
+	function handleApplyExpertRewrite() {
+		if (expertResult) {
+			setTemplateText(expertResult.expertText);
+			setDirty(true);
+			setExpertResult(null);
+			showToast("success", "Expert rewrite applied");
+		}
+	}
+
 	const detectedParams = extractParameters(templateText);
 	const defaultValues: Partial<PromptFormValues> = prompt
 		? {
@@ -364,6 +468,27 @@ export function PromptEditorLayout({
 								History
 							</Link>
 						</Button>
+						<Button size="sm" variant="outline" asChild>
+							<Link
+								href={`/playground?promptId=${prompt?.id}&versionId=${prompt?.latestVersion?.id}`}
+							>
+								<FlaskConical className="mr-1.5 h-3.5 w-3.5" />
+								Test Run
+							</Link>
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={handleCompress}
+							disabled={isSaving || isCompressing}
+						>
+							{isCompressing ? (
+								<Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+							) : (
+								<Minimize2 className="mr-1.5 h-3.5 w-3.5" />
+							)}
+							Compress
+						</Button>
 						<Button
 							size="sm"
 							variant="outline"
@@ -391,6 +516,7 @@ export function PromptEditorLayout({
 					onChange={handleTemplateChange}
 					parameters={detectedParams}
 					showAmbiguities={showAmbiguities}
+					ghostTextEnabled={ghostTextEnabled}
 				/>
 			</div>
 			<div className="flex items-center justify-between border-t px-4 py-2">
@@ -408,6 +534,21 @@ export function PromptEditorLayout({
 							className="cursor-pointer text-muted-foreground text-xs"
 						>
 							Ambiguities
+						</Label>
+					</div>
+					<div className="flex items-center gap-1.5">
+						<Switch
+							id="ghost-text-toggle"
+							checked={ghostTextEnabled}
+							onCheckedChange={setGhostTextEnabled}
+							className="scale-75"
+						/>
+						<Label
+							htmlFor="ghost-text-toggle"
+							className="cursor-pointer text-muted-foreground text-xs"
+						>
+							<Sparkles className="mr-1 inline-block h-3 w-3" />
+							AI Suggest
 						</Label>
 					</div>
 				</div>
@@ -434,9 +575,11 @@ export function PromptEditorLayout({
 			analysis={analysis}
 			isAnalyzing={isAnalyzing}
 			isEnhancing={isEnhancing}
+			isExpertRewriting={isExpertRewriting}
 			error={analysisError}
 			onAnalyze={handleAnalyze}
 			onEnhance={handleEnhance}
+			onExpertRewrite={handleExpertRewrite}
 			onAppendSuggestion={(snippet) => {
 				setTemplateText((prev) => prev + snippet);
 				setDirty(true);
@@ -452,16 +595,66 @@ export function PromptEditorLayout({
 		/>
 	) : null;
 
+	const handleInsertSnippet = useCallback(
+		(snippet: string) => {
+			setTemplateText((prev) => prev + snippet);
+			setDirty(true);
+		},
+		[setDirty],
+	);
+
+	const linterPanel = (
+		<div className="flex flex-col gap-4 p-4">
+			<div>
+				<div className="mb-3 flex items-center justify-between">
+					<span className="font-medium text-sm">Prompt Linter</span>
+					<LinterConfig />
+				</div>
+				<LinterPanel violations={lintViolations} />
+			</div>
+			<div className="border-t pt-4">
+				<span className="mb-3 block font-medium text-sm">Output Format</span>
+				<FormatEnforcerPanel
+					promptText={templateText}
+					onInsertSnippet={handleInsertSnippet}
+				/>
+			</div>
+		</div>
+	);
+
+	const coachPanel = (
+		<CoachSidebar
+			promptText={templateText}
+			targetModel={formValues.llm}
+			onInsertSnippet={handleInsertSnippet}
+		/>
+	);
+
 	const rightPanelTabbed = (
 		<Tabs defaultValue="details" className="flex h-full flex-col">
 			<TabsList className="mx-4 mt-2 shrink-0">
 				<TabsTrigger value="details">Details</TabsTrigger>
+				<TabsTrigger value="linter">
+					Linter
+					{lintViolations.length > 0 && (
+						<span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500/20 px-1 font-medium text-amber-600 text-xs dark:text-amber-400">
+							{lintViolations.length}
+						</span>
+					)}
+				</TabsTrigger>
+				<TabsTrigger value="coach">Coach</TabsTrigger>
 				{mode === "edit" && (
 					<TabsTrigger value="analysis">Analysis</TabsTrigger>
 				)}
 			</TabsList>
 			<TabsContent value="details" className="flex-1 overflow-auto">
 				{metadataPanel}
+			</TabsContent>
+			<TabsContent value="linter" className="flex-1 overflow-auto">
+				{linterPanel}
+			</TabsContent>
+			<TabsContent value="coach" className="flex-1 overflow-auto">
+				{coachPanel}
 			</TabsContent>
 			{mode === "edit" && (
 				<TabsContent value="analysis" className="flex-1 overflow-auto">
@@ -494,6 +687,8 @@ export function PromptEditorLayout({
 					<TabsList className="mx-4 mt-2">
 						<TabsTrigger value="edit">Edit</TabsTrigger>
 						<TabsTrigger value="details">Details</TabsTrigger>
+						<TabsTrigger value="linter">Linter</TabsTrigger>
+						<TabsTrigger value="coach">Coach</TabsTrigger>
 						{mode === "edit" && (
 							<TabsTrigger value="analysis">Analysis</TabsTrigger>
 						)}
@@ -504,6 +699,12 @@ export function PromptEditorLayout({
 					</TabsContent>
 					<TabsContent value="details" className="flex-1 overflow-auto">
 						{metadataPanel}
+					</TabsContent>
+					<TabsContent value="linter" className="flex-1 overflow-auto">
+						{linterPanel}
+					</TabsContent>
+					<TabsContent value="coach" className="flex-1 overflow-auto">
+						{coachPanel}
 					</TabsContent>
 					{mode === "edit" && (
 						<TabsContent value="analysis" className="flex-1 overflow-auto">
@@ -525,6 +726,29 @@ export function PromptEditorLayout({
 				changesSummary={changesSummary}
 				onApply={handleApplyEnhancement}
 			/>
+
+			{/* Compress diff dialog */}
+			<CompressDiffDialog
+				open={compressDiffOpen}
+				onOpenChange={setCompressDiffOpen}
+				originalText={templateText}
+				compressedText={compressResult?.compressedText ?? ""}
+				originalTokens={compressResult?.originalTokens ?? 0}
+				compressedTokens={compressResult?.compressedTokens ?? 0}
+				savings={compressResult?.savings ?? 0}
+				onApply={handleApplyCompression}
+			/>
+
+			{/* Expert view dialog */}
+			{expertResult && (
+				<ExpertViewDialog
+					open={expertViewOpen}
+					onOpenChange={setExpertViewOpen}
+					originalText={templateText}
+					result={expertResult}
+					onApply={handleApplyExpertRewrite}
+				/>
+			)}
 		</div>
 	);
 }

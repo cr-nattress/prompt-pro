@@ -1,6 +1,7 @@
 import { ApiErrorCode } from "@/lib/api/errors";
 import { apiError, apiSuccess } from "@/lib/api/response";
 import { parseJsonBody, resolveApp, setupRoute } from "@/lib/api/route-helpers";
+import { checkPromptLimit } from "@/lib/billing/gating";
 import {
 	createPrompt,
 	getPromptsWithLatestVersion,
@@ -64,6 +65,18 @@ export async function POST(
 		const { app: appSlug } = await params;
 		const appResult = await resolveApp(appSlug, rc);
 		if (!appResult.ok) return appResult.response;
+
+		const gate = await checkPromptLimit(
+			rc.ctx.workspaceId,
+			rc.ctx.workspacePlan,
+		);
+		if (!gate.allowed) {
+			return apiError(
+				ApiErrorCode.VALIDATION_ERROR,
+				`Prompt limit reached (${gate.current}/${gate.limitLabel}). Upgrade your plan.`,
+				{ requestId: rc.requestId, headers: rc.rlHeaders },
+			);
+		}
 
 		const bodyResult = await parseJsonBody(request, rc);
 		if (!bodyResult.ok) return bodyResult.response;

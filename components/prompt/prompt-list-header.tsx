@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -14,12 +14,20 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
 					Prompts{" "}
 					<span className="font-normal text-muted-foreground">({count})</span>
 				</h1>
-				<Button asChild className="hidden md:inline-flex">
-					<Link href="/prompts/new">
-						<Plus className="mr-2 h-4 w-4" />
-						New Prompt
-					</Link>
-				</Button>
+				<div className="hidden items-center gap-2 md:flex">
+					<Button asChild variant="outline">
+						<Link href="/prompts/new?mode=guided">
+							<Wand2 className="mr-2 h-4 w-4" />
+							Guided Builder
+						</Link>
+					</Button>
+					<Button asChild>
+						<Link href="/prompts/new">
+							<Plus className="mr-2 h-4 w-4" />
+							New Prompt
+						</Link>
+					</Button>
+				</div>
 			</div>
 
 			{/* Mobile FAB */}

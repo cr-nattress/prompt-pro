@@ -1,8 +1,22 @@
-export default function PlaygroundPage() {
+import type { Metadata } from "next";
+import { PlaygroundView } from "@/components/playground/playground-view";
+
+export const metadata: Metadata = { title: "Playground" };
+
+interface PlaygroundPageProps {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function PlaygroundPage({
+	searchParams,
+}: PlaygroundPageProps) {
+	const params = await searchParams;
+	const promptId =
+		typeof params.promptId === "string" ? params.promptId : undefined;
+	const versionId =
+		typeof params.versionId === "string" ? params.versionId : undefined;
+
 	return (
-		<div className="flex flex-col gap-4">
-			<h1 className="font-bold text-2xl">Playground</h1>
-			<p className="text-muted-foreground">Coming soon.</p>
-		</div>
+		<PlaygroundView initialPromptId={promptId} initialVersionId={versionId} />
 	);
 }

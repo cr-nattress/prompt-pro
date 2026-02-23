@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Sparkles, Wand2 } from "lucide-react";
+import { GraduationCap, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,9 +18,11 @@ interface AnalysisPanelProps {
 	analysis: Analysis | null;
 	isAnalyzing: boolean;
 	isEnhancing: boolean;
+	isExpertRewriting: boolean;
 	error: string | null;
 	onAnalyze: () => void;
 	onEnhance: () => void;
+	onExpertRewrite: () => void;
 	onAppendSuggestion?: (text: string) => void;
 }
 
@@ -62,9 +64,11 @@ export function AnalysisPanel({
 	analysis,
 	isAnalyzing,
 	isEnhancing,
+	isExpertRewriting,
 	error,
 	onAnalyze,
 	onEnhance,
+	onExpertRewrite,
 	onAppendSuggestion,
 }: AnalysisPanelProps) {
 	if (isAnalyzing) {
@@ -157,6 +161,19 @@ export function AnalysisPanel({
 								<Wand2 className="mr-1.5 h-3.5 w-3.5" />
 							)}
 							Enhance
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={onExpertRewrite}
+							disabled={isExpertRewriting}
+						>
+							{isExpertRewriting ? (
+								<Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+							) : (
+								<GraduationCap className="mr-1.5 h-3.5 w-3.5" />
+							)}
+							Expert View
 						</Button>
 					</div>
 				</div>

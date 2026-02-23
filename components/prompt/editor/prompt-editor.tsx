@@ -21,6 +21,7 @@ import {
 	ambiguityTheme,
 	ambiguityTooltip,
 } from "./ambiguity-extension";
+import { ghostTextExtension } from "./ghost-text-extension";
 import { createParameterCompletion } from "./parameter-autocomplete";
 import {
 	parameterDecoration,
@@ -35,11 +36,13 @@ interface PromptEditorProps {
 	parameters?: string[];
 	readOnly?: boolean;
 	showAmbiguities?: boolean;
+	ghostTextEnabled?: boolean;
 }
 
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
 const ambiguityCompartment = new Compartment();
+const ghostTextCompartment = new Compartment();
 
 export default function PromptEditor({
 	value,
@@ -47,6 +50,7 @@ export default function PromptEditor({
 	parameters = [],
 	readOnly = false,
 	showAmbiguities = false,
+	ghostTextEnabled = false,
 }: PromptEditorProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -88,6 +92,7 @@ export default function PromptEditor({
 				),
 				themeCompartment.of(isDark ? promptEditorDark : promptEditorLight),
 				readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
+				ghostTextCompartment.of(ghostTextEnabled ? ghostTextExtension() : []),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						onChangeRef.current?.(update.state.doc.toString());
@@ -147,6 +152,18 @@ export default function PromptEditor({
 			),
 		});
 	}, [showAmbiguities]);
+
+	// Sync ghost text
+	useEffect(() => {
+		const view = viewRef.current;
+		if (!view) return;
+
+		view.dispatch({
+			effects: ghostTextCompartment.reconfigure(
+				ghostTextEnabled ? ghostTextExtension() : [],
+			),
+		});
+	}, [ghostTextEnabled]);
 
 	// Sync value from outside (only when it differs from editor state)
 	useEffect(() => {

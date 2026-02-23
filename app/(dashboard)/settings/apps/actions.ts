@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
+import { checkAppLimit } from "@/lib/billing/gating";
 import { createApp, deleteApp, updateApp } from "@/lib/db/queries/apps";
 import type { App } from "@/lib/db/schema";
 import type { ActionResult } from "@/types";
@@ -13,6 +14,15 @@ export async function createAppSettingsAction(data: {
 }): Promise<ActionResult<App>> {
 	try {
 		const { workspace } = await requireAuth();
+
+		const gate = await checkAppLimit(workspace.id, workspace.plan);
+		if (!gate.allowed) {
+			return {
+				success: false,
+				error: `App limit reached (${gate.current}/${gate.limitLabel}). Upgrade your plan to create more apps.`,
+			};
+		}
+
 		const app = await createApp({
 			...data,
 			workspaceId: workspace.id,

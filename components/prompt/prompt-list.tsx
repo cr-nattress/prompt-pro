@@ -1,4 +1,4 @@
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { PromptWithVersion } from "@/types";
@@ -19,12 +19,24 @@ export function PromptList({ items }: PromptListProps) {
 						Create your first prompt to get started.
 					</p>
 				</div>
-				<Button asChild>
-					<Link href="/prompts/new">
-						<Plus className="mr-2 h-4 w-4" />
-						New Prompt
-					</Link>
-				</Button>
+				<div className="flex flex-wrap items-center gap-2">
+					<Button asChild>
+						<Link href="/prompts/new">
+							<Plus className="mr-2 h-4 w-4" />
+							New Prompt
+						</Link>
+					</Button>
+					<Button asChild variant="outline">
+						<Link href="/prompts/new?mode=guided">
+							<Wand2 className="mr-2 h-4 w-4" />
+							Guided Builder
+						</Link>
+					</Button>
+				</div>
+				<p className="max-w-sm text-center text-muted-foreground text-xs">
+					The guided builder walks you through creating effective prompts step
+					by step.
+				</p>
 			</div>
 		);
 	}

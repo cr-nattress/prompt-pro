@@ -14,6 +14,8 @@ export interface AuthUser {
 	firstName: string;
 	lastName: string;
 	imageUrl: string;
+	dismissedLessons: string[];
+	onboardingComplete: boolean;
 	createdAt: Date;
 }
 

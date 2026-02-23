@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PromptList } from "@/components/prompt/prompt-list";
 import { PromptListHeader } from "@/components/prompt/prompt-list-header";
@@ -7,6 +8,8 @@ import { PromptListToolbar } from "@/components/prompt/prompt-list-toolbar";
 import { requireAuth } from "@/lib/auth";
 import { getPromptsWithLatestVersion } from "@/lib/db/queries/prompts";
 import { promptSearchParamsCache } from "@/lib/search-params/prompts";
+
+export const metadata: Metadata = { title: "Prompts" };
 
 interface PromptsPageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;

@@ -59,6 +59,8 @@ describe("getCurrentUser", () => {
 			firstName: "Jane",
 			lastName: "Doe",
 			imageUrl: "https://img.clerk.com/jane.jpg",
+			dismissedLessons: [],
+			onboardingComplete: false,
 			createdAt: new Date(1700000000000),
 		});
 	});
@@ -73,6 +75,8 @@ describe("getCurrentUser", () => {
 			firstName: "Jane",
 			lastName: "Doe",
 			imageUrl: "https://img.clerk.com/jane.jpg",
+			dismissedLessons: [],
+			onboardingComplete: false,
 			createdAt: new Date("2024-01-01"),
 		});
 

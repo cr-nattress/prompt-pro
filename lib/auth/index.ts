@@ -11,6 +11,8 @@ const MOCK_USER: AuthUser = {
 	firstName: "Dev",
 	lastName: "User",
 	imageUrl: "",
+	dismissedLessons: [],
+	onboardingComplete: true,
 	createdAt: new Date("2025-01-01"),
 };
 
@@ -48,6 +50,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 				firstName: dbUser.firstName ?? "",
 				lastName: dbUser.lastName ?? "",
 				imageUrl: dbUser.imageUrl ?? "",
+				dismissedLessons: dbUser.dismissedLessons,
+				onboardingComplete: dbUser.onboardingComplete,
 				createdAt: dbUser.createdAt,
 			};
 		}
@@ -65,6 +69,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 		firstName: clerkUser.firstName ?? "",
 		lastName: clerkUser.lastName ?? "",
 		imageUrl: clerkUser.imageUrl,
+		dismissedLessons: [],
+		onboardingComplete: false,
 		createdAt: new Date(clerkUser.createdAt),
 	};
 }

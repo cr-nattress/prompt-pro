@@ -39,7 +39,7 @@ export const mainNavItems: NavItem[] = [
 		title: "Playground",
 		href: "/playground",
 		icon: FlaskConical,
-		disabled: true,
+		shortcutKeys: ["G", "G"],
 	},
 	{
 		title: "Learn",

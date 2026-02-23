@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Header } from "@/components/layout/header";
@@ -12,7 +13,11 @@ export default async function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const { workspace } = await requireAuth();
+	const { user, workspace } = await requireAuth();
+
+	if (!user.onboardingComplete) {
+		redirect("/onboarding");
+	}
 
 	const cookieStore = await cookies();
 	const sidebarState = cookieStore.get("sidebar_state")?.value;
@@ -23,9 +28,12 @@ export default async function DashboardLayout({
 			<AppSidebar />
 			<SidebarInset>
 				<Header workspaceName={workspace.name} />
-				<div className="flex-1 overflow-auto p-4 pb-20 md:p-6 md:pb-0">
+				<main
+					id="main-content"
+					className="flex-1 overflow-auto p-4 pb-20 md:p-6 md:pb-0"
+				>
 					{children}
-				</div>
+				</main>
 			</SidebarInset>
 			<MobileTabBar />
 			<CommandPalette />

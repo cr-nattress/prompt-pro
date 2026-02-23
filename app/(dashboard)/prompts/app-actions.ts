@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
+import { checkAppLimit } from "@/lib/billing/gating";
 import { createApp, getAppsByWorkspaceId } from "@/lib/db/queries/apps";
 import type { App } from "@/lib/db/schema";
 import { appFormSchema } from "@/lib/validations/prompt";
@@ -11,6 +12,15 @@ export async function createAppAction(
 ): Promise<ActionResult<App>> {
 	try {
 		const { workspace } = await requireAuth();
+
+		const gate = await checkAppLimit(workspace.id, workspace.plan);
+		if (!gate.allowed) {
+			return {
+				success: false,
+				error: `App limit reached (${gate.current}/${gate.limitLabel}). Upgrade your plan to create more apps.`,
+			};
+		}
+
 		const parsed = appFormSchema.safeParse(input);
 		if (!parsed.success) {
 			return {

@@ -178,3 +178,15 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+/* biome-ignore lint/complexity/noImportantStyles: prefers-reduced-motion override must use !important to ensure all animations are disabled */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

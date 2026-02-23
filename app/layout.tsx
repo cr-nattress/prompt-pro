@@ -14,7 +14,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "PromptVault",
+	title: {
+		default: "PromptVault",
+		template: "%s - PromptVault",
+	},
 	description: "Build better prompts, faster.",
 };
 
@@ -28,6 +31,12 @@ export default function RootLayout({
 			<body
 				className={`${inter.variable} ${jetbrainsMono.variable} min-h-screen bg-background font-sans antialiased`}
 			>
+				<a
+					href="#main-content"
+					className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
+				>
+					Skip to main content
+				</a>
 				<Providers>{children}</Providers>
 			</body>
 		</html>

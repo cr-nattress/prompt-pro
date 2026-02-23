@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiErrorCode } from "@/lib/api/errors";
 import { apiError, apiSuccess } from "@/lib/api/response";
 import { parseJsonBody, setupRoute } from "@/lib/api/route-helpers";
+import { checkAppLimit } from "@/lib/billing/gating";
 import { createApp, getAppsByWorkspaceId } from "@/lib/db/queries/apps";
 
 const createAppApiSchema = z.object({
@@ -38,6 +39,15 @@ export async function POST(request: Request) {
 
 		const bodyResult = await parseJsonBody(request, rc);
 		if (!bodyResult.ok) return bodyResult.response;
+
+		const gate = await checkAppLimit(rc.ctx.workspaceId, rc.ctx.workspacePlan);
+		if (!gate.allowed) {
+			return apiError(
+				ApiErrorCode.VALIDATION_ERROR,
+				`App limit reached (${gate.current}/${gate.limitLabel}). Upgrade your plan.`,
+				{ requestId: rc.requestId, headers: rc.rlHeaders },
+			);
+		}
 
 		const parsed = createAppApiSchema.safeParse(bodyResult.body);
 		if (!parsed.success) {

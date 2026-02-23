@@ -1,4 +1,4 @@
-import { jsonb, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, jsonb, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { planEnum, promptSchema } from "./enums";
 
 export const users = promptSchema.table("users", {
@@ -11,6 +11,8 @@ export const users = promptSchema.table("users", {
 	imageUrl: text("image_url"),
 	plan: planEnum().default("free").notNull(),
 	skillProfile: jsonb("skill_profile"),
+	dismissedLessons: text("dismissed_lessons").array().default([]).notNull(),
+	onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.defaultNow()
 		.notNull(),
