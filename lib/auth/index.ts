@@ -1,7 +1,16 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { getUserByClerkId } from "@/lib/db/queries/users";
-import { getWorkspacesByUserId } from "@/lib/db/queries/workspaces";
-import type { AuthContext, AuthUser, Workspace } from "@/types/auth";
+import { getMemberRole } from "@/lib/db/queries/members";
+import { createUser, getUserByClerkId } from "@/lib/db/queries/users";
+import {
+	createWorkspace,
+	getWorkspacesByUserId,
+} from "@/lib/db/queries/workspaces";
+import type {
+	AuthContext,
+	AuthUser,
+	Workspace,
+	WorkspaceRole,
+} from "@/types/auth";
 
 const MOCK_USER: AuthUser = {
 	id: "00000000-0000-0000-0000-000000000001",
@@ -13,6 +22,7 @@ const MOCK_USER: AuthUser = {
 	imageUrl: "",
 	dismissedLessons: [],
 	onboardingComplete: true,
+	leaderboardOptIn: false,
 	createdAt: new Date("2025-01-01"),
 };
 
@@ -38,23 +48,48 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
 	const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
 
-	// Try to enrich with DB record
+	// Try to enrich with DB record, auto-provision if missing
 	try {
-		const dbUser = await getUserByClerkId(clerkUser.id);
-		if (dbUser) {
-			return {
-				id: dbUser.id,
-				clerkId: dbUser.clerkId,
-				email: dbUser.email,
-				name: dbUser.name,
-				firstName: dbUser.firstName ?? "",
-				lastName: dbUser.lastName ?? "",
-				imageUrl: dbUser.imageUrl ?? "",
-				dismissedLessons: dbUser.dismissedLessons,
-				onboardingComplete: dbUser.onboardingComplete,
-				createdAt: dbUser.createdAt,
-			};
+		let dbUser = await getUserByClerkId(clerkUser.id);
+
+		// Auto-provision: Clerk user exists but no DB record (webhook didn't fire)
+		if (!dbUser) {
+			const name =
+				[clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
+				email;
+			dbUser = await createUser({
+				clerkId: clerkUser.id,
+				email,
+				name,
+				firstName: clerkUser.firstName ?? undefined,
+				lastName: clerkUser.lastName ?? undefined,
+				imageUrl: clerkUser.imageUrl ?? undefined,
+			});
+
+			// Create a default workspace
+			const slug = email.split("@")[0] ?? "default";
+			await createWorkspace({
+				slug: `${slug}-${dbUser.id.slice(0, 8)}`,
+				name: clerkUser.firstName
+					? `${clerkUser.firstName}'s Workspace`
+					: "My Workspace",
+				ownerId: dbUser.id,
+			});
 		}
+
+		return {
+			id: dbUser.id,
+			clerkId: dbUser.clerkId,
+			email: dbUser.email,
+			name: dbUser.name,
+			firstName: dbUser.firstName ?? "",
+			lastName: dbUser.lastName ?? "",
+			imageUrl: dbUser.imageUrl ?? "",
+			dismissedLessons: dbUser.dismissedLessons,
+			onboardingComplete: dbUser.onboardingComplete,
+			leaderboardOptIn: dbUser.leaderboardOptIn,
+			createdAt: dbUser.createdAt,
+		};
 	} catch {
 		// DB unavailable — fall back to Clerk-only data
 	}
@@ -71,6 +106,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 		imageUrl: clerkUser.imageUrl,
 		dismissedLessons: [],
 		onboardingComplete: false,
+		leaderboardOptIn: false,
 		createdAt: new Date(clerkUser.createdAt),
 	};
 }
@@ -121,10 +157,6 @@ export async function getCurrentWorkspace(): Promise<Workspace | null> {
  * Use in Server Components, Server Actions, and Route Handlers.
  */
 export async function requireAuth(): Promise<AuthContext> {
-	if (process.env.BYPASS_AUTH === "true") {
-		return { user: MOCK_USER, workspace: MOCK_WORKSPACE };
-	}
-
 	const { userId, redirectToSignIn } = await auth();
 
 	if (!userId) {
@@ -138,9 +170,40 @@ export async function requireAuth(): Promise<AuthContext> {
 
 	// At this point user is guaranteed non-null (redirectToSignIn throws)
 	const workspace = await getCurrentWorkspace();
+	const typedUser = user as AuthUser;
+	const typedWorkspace = workspace as Workspace;
+
+	// Determine role: owner is always admin, otherwise check membership
+	let role: WorkspaceRole = "admin";
+	if (typedWorkspace.ownerId !== typedUser.id) {
+		const memberRole = await getMemberRole(typedWorkspace.id, typedUser.id);
+		role = memberRole ?? "viewer";
+	}
 
 	return {
-		user: user as AuthUser,
-		workspace: workspace as Workspace,
+		user: typedUser,
+		workspace: typedWorkspace,
+		role,
 	};
+}
+
+/**
+ * Require a minimum role level. Throws if the user doesn't have sufficient permissions.
+ */
+const ROLE_LEVELS: Record<WorkspaceRole, number> = {
+	viewer: 0,
+	editor: 1,
+	admin: 2,
+};
+
+export async function requireRole(
+	minRole: WorkspaceRole,
+): Promise<AuthContext> {
+	const ctx = await requireAuth();
+	if (ROLE_LEVELS[ctx.role] < ROLE_LEVELS[minRole]) {
+		throw new Error(
+			`Insufficient permissions. Required: ${minRole}, current: ${ctx.role}`,
+		);
+	}
+	return ctx;
 }

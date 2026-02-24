@@ -9,6 +9,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { RegressionResult } from "@/lib/testing/regression";
 import { getAllowedPromotions, type VersionStatus } from "@/lib/version-utils";
 import { PromoteConfirmDialog } from "./promote-confirm-dialog";
 import { StatusBadge } from "./status-badge";
@@ -18,11 +19,13 @@ interface PromoteDropdownProps {
 	onPromote: (
 		newStatus: "active" | "stable" | "deprecated",
 	) => Promise<boolean>;
+	regressions?: RegressionResult | null | undefined;
 }
 
 export function PromoteDropdown({
 	currentStatus,
 	onPromote,
+	regressions,
 }: PromoteDropdownProps) {
 	const allowed = getAllowedPromotions(currentStatus);
 	const [confirmTarget, setConfirmTarget] = useState<VersionStatus | null>(
@@ -63,6 +66,7 @@ export function PromoteDropdown({
 					onConfirm={() =>
 						onPromote(confirmTarget as "active" | "stable" | "deprecated")
 					}
+					regressions={regressions}
 				/>
 			)}
 		</>

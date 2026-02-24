@@ -147,6 +147,48 @@ export const MICRO_LESSONS: MicroLesson[] = [
 		learnMoreSlug: "step-by-step-decomposition",
 		category: "prompt",
 	},
+	{
+		id: "blueprint-context-layering",
+		title: "Context layers improve clarity",
+		body: "Organizing your blueprint into distinct layers (system, knowledge, examples) helps the AI prioritize information correctly.",
+		learnMoreSlug: "context-layering",
+		category: "blueprint",
+	},
+	{
+		id: "blueprint-token-budget",
+		title: "Watch your token budget",
+		body: "Your blueprint is using a significant portion of the context window. Consider compressing less critical blocks.",
+		learnMoreSlug: "token-budget-allocation",
+		category: "blueprint",
+	},
+	{
+		id: "blueprint-conditional-blocks",
+		title: "Try conditional blocks",
+		body: "Conditional blocks let you include different context based on input type, making your blueprint more versatile.",
+		learnMoreSlug: "conditional-inclusion",
+		category: "blueprint",
+	},
+	{
+		id: "blueprint-redundancy",
+		title: "Reduce context redundancy",
+		body: "Multiple blocks in your blueprint contain overlapping instructions. Consolidate to save tokens and reduce confusion.",
+		learnMoreSlug: "knowledge-delineation",
+		category: "blueprint",
+	},
+	{
+		id: "blueprint-grounding",
+		title: "Ground your knowledge blocks",
+		body: "Knowledge blocks are more effective when paired with grounding instructions that tell the AI how to use the information.",
+		learnMoreSlug: "grounding-instructions",
+		category: "blueprint",
+	},
+	{
+		id: "blueprint-single-block",
+		title: "Multiple blocks improve results",
+		body: "A single-block blueprint misses the benefit of context layering. Try splitting your context into system, knowledge, and example blocks.",
+		learnMoreSlug: "context-layering",
+		category: "blueprint",
+	},
 ];
 
 export function getMicroLesson(id: string): MicroLesson | undefined {

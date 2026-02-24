@@ -149,7 +149,7 @@ export async function compressPromptAction(
 			};
 		}
 
-		const model = getModel("claude-sonnet-4-20250514");
+		const model = getModel("claude-sonnet-4-6-20250514");
 
 		const { text } = await generateText({
 			model,

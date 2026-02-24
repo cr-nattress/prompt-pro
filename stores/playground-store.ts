@@ -96,7 +96,7 @@ const initialState = {
 	streamingText: "",
 	runs: [] as PlaygroundRunResult[],
 	abMode: false,
-	abModelId: "claude-haiku-3-5-20241022",
+	abModelId: "claude-haiku-4-5-20251001",
 	abStreamingText: "",
 	abIsRunning: false,
 };

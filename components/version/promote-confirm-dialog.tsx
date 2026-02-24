@@ -10,7 +10,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import type { RegressionResult } from "@/lib/testing/regression";
 import type { VersionStatus } from "@/lib/version-utils";
+import { RegressionWarning } from "./regression-warning";
 import { StatusBadge } from "./status-badge";
 
 interface PromoteConfirmDialogProps {
@@ -19,6 +21,7 @@ interface PromoteConfirmDialogProps {
 	currentStatus: VersionStatus;
 	targetStatus: VersionStatus;
 	onConfirm: () => Promise<boolean>;
+	regressions?: RegressionResult | null | undefined;
 }
 
 export function PromoteConfirmDialog({
@@ -27,8 +30,14 @@ export function PromoteConfirmDialog({
 	currentStatus,
 	targetStatus,
 	onConfirm,
+	regressions,
 }: PromoteConfirmDialogProps) {
 	const [isPending, setIsPending] = useState(false);
+	const [regressionsAcknowledged, setRegressionsAcknowledged] = useState(false);
+
+	const hasRegressions = regressions?.hasRegressions ?? false;
+	const confirmDisabled =
+		isPending || (hasRegressions && !regressionsAcknowledged);
 
 	async function handleConfirm() {
 		setIsPending(true);
@@ -53,6 +62,13 @@ export function PromoteConfirmDialog({
 					<StatusBadge status={targetStatus} />
 				</div>
 
+				{regressions?.hasRegressions && (
+					<RegressionWarning
+						regressions={regressions}
+						onAcknowledge={setRegressionsAcknowledged}
+					/>
+				)}
+
 				<DialogFooter>
 					<Button
 						variant="outline"
@@ -61,7 +77,7 @@ export function PromoteConfirmDialog({
 					>
 						Cancel
 					</Button>
-					<Button onClick={handleConfirm} disabled={isPending}>
+					<Button onClick={handleConfirm} disabled={confirmDisabled}>
 						{isPending ? "Promoting..." : "Promote"}
 					</Button>
 				</DialogFooter>

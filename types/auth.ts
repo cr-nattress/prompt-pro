@@ -16,6 +16,7 @@ export interface AuthUser {
 	imageUrl: string;
 	dismissedLessons: string[];
 	onboardingComplete: boolean;
+	leaderboardOptIn: boolean;
 	createdAt: Date;
 }
 
@@ -30,7 +31,10 @@ export interface Workspace {
 	createdAt: Date;
 }
 
+export type WorkspaceRole = "admin" | "editor" | "viewer";
+
 export interface AuthContext {
 	user: AuthUser;
 	workspace: Workspace;
+	role: WorkspaceRole;
 }

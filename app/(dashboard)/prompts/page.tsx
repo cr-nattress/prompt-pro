@@ -22,7 +22,11 @@ export default async function PromptsPage({ searchParams }: PromptsPageProps) {
 	return (
 		<div className="flex flex-col gap-4">
 			<Suspense fallback={<PromptListSkeleton />}>
-				<PromptListContent workspaceId={workspace.id} params={params} />
+				<PromptListContent
+					workspaceId={workspace.id}
+					plan={workspace.plan}
+					params={params}
+				/>
 			</Suspense>
 		</div>
 	);
@@ -30,6 +34,7 @@ export default async function PromptsPage({ searchParams }: PromptsPageProps) {
 
 interface PromptListContentProps {
 	workspaceId: string;
+	plan: string;
 	params: {
 		search: string;
 		purpose: string | null;
@@ -42,6 +47,7 @@ interface PromptListContentProps {
 
 async function PromptListContent({
 	workspaceId,
+	plan,
 	params,
 }: PromptListContentProps) {
 	const { items, total, page, pageSize } = await getPromptsWithLatestVersion(
@@ -58,7 +64,11 @@ async function PromptListContent({
 
 	return (
 		<>
-			<PromptListHeader count={total} />
+			<PromptListHeader
+				count={total}
+				promptIds={items.map((i) => i.id)}
+				plan={plan}
+			/>
 			<PromptListToolbar />
 			<PromptList items={items} />
 			<PromptListPagination total={total} page={page} pageSize={pageSize} />

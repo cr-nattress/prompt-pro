@@ -48,7 +48,8 @@ export async function createOnboardingPromptAction(data: {
 		const name = data.role
 			? `${data.role} — ${data.task.split(/\s+/).slice(0, 4).join(" ")}`
 			: "My First Prompt";
-		const slug = slugify(name);
+		const suffix = crypto.randomUUID().slice(0, 6);
+		const slug = `${slugify(name)}-${suffix}`;
 
 		const result = await createPrompt(
 			{

@@ -4,6 +4,7 @@ const mockCurrentUser = vi.fn();
 const mockAuth = vi.fn();
 const mockGetUserByClerkId = vi.fn();
 const mockGetWorkspacesByUserId = vi.fn();
+const mockGetMemberRole = vi.fn();
 
 vi.mock("@clerk/nextjs/server", () => ({
 	currentUser: (...args: unknown[]) => mockCurrentUser(...args),
@@ -17,6 +18,10 @@ vi.mock("@/lib/db/queries/users", () => ({
 vi.mock("@/lib/db/queries/workspaces", () => ({
 	getWorkspacesByUserId: (...args: unknown[]) =>
 		mockGetWorkspacesByUserId(...args),
+}));
+
+vi.mock("@/lib/db/queries/members", () => ({
+	getMemberRole: (...args: unknown[]) => mockGetMemberRole(...args),
 }));
 
 const clerkUserFixture = {
@@ -35,6 +40,7 @@ describe("getCurrentUser", () => {
 		mockAuth.mockReset();
 		mockGetUserByClerkId.mockReset();
 		mockGetWorkspacesByUserId.mockReset();
+		mockGetMemberRole.mockReset();
 		// Default: DB returns null (no user found)
 		mockGetUserByClerkId.mockResolvedValue(null);
 	});
@@ -61,6 +67,7 @@ describe("getCurrentUser", () => {
 			imageUrl: "https://img.clerk.com/jane.jpg",
 			dismissedLessons: [],
 			onboardingComplete: false,
+			leaderboardOptIn: false,
 			createdAt: new Date(1700000000000),
 		});
 	});
@@ -77,6 +84,7 @@ describe("getCurrentUser", () => {
 			imageUrl: "https://img.clerk.com/jane.jpg",
 			dismissedLessons: [],
 			onboardingComplete: false,
+			leaderboardOptIn: false,
 			createdAt: new Date("2024-01-01"),
 		});
 
@@ -117,6 +125,7 @@ describe("getCurrentWorkspace", () => {
 		mockAuth.mockReset();
 		mockGetUserByClerkId.mockReset();
 		mockGetWorkspacesByUserId.mockReset();
+		mockGetMemberRole.mockReset();
 		mockGetUserByClerkId.mockResolvedValue(null);
 		mockGetWorkspacesByUserId.mockResolvedValue([]);
 	});
@@ -171,6 +180,7 @@ describe("requireAuth", () => {
 		mockAuth.mockReset();
 		mockGetUserByClerkId.mockReset();
 		mockGetWorkspacesByUserId.mockReset();
+		mockGetMemberRole.mockReset();
 		mockGetUserByClerkId.mockResolvedValue(null);
 		mockGetWorkspacesByUserId.mockResolvedValue([]);
 	});
@@ -203,5 +213,6 @@ describe("requireAuth", () => {
 		expect(ctx.user.clerkId).toBe("user_abc123");
 		expect(ctx.workspace.slug).toBe("jane");
 		expect(ctx.workspace.plan).toBe("free");
+		expect(ctx.role).toBe("admin");
 	});
 });

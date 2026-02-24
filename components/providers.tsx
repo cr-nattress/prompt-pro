@@ -14,13 +14,7 @@ const baseTheme = dark as Parameters<
 	? T
 	: never;
 
-const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-
 function AuthProvider({ children }: { children: React.ReactNode }) {
-	if (bypassAuth) {
-		return <>{children}</>;
-	}
-
 	return (
 		<ClerkProvider
 			appearance={{

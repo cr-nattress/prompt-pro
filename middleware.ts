@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
 	"/",
@@ -10,13 +9,11 @@ const isPublicRoute = createRouteMatcher([
 	"/api/webhooks(.*)",
 ]);
 
-export default process.env.BYPASS_AUTH === "true"
-	? () => NextResponse.next()
-	: clerkMiddleware(async (auth, request) => {
-			if (!isPublicRoute(request)) {
-				await auth.protect();
-			}
-		});
+export default clerkMiddleware(async (auth, request) => {
+	if (!isPublicRoute(request)) {
+		await auth.protect();
+	}
+});
 
 export const config = {
 	matcher: [

@@ -1,11 +1,14 @@
 import {
+	BarChart3,
 	BookOpen,
 	Boxes,
 	FlaskConical,
+	Globe,
 	LayoutDashboard,
 	type LucideIcon,
 	ScrollText,
 	Settings,
+	Workflow,
 } from "lucide-react";
 
 export interface NavItem {
@@ -40,6 +43,24 @@ export const mainNavItems: NavItem[] = [
 		href: "/playground",
 		icon: FlaskConical,
 		shortcutKeys: ["G", "G"],
+	},
+	{
+		title: "Gallery",
+		href: "/gallery",
+		icon: Globe,
+		shortcutKeys: ["G", "A"],
+	},
+	{
+		title: "Analytics",
+		href: "/analytics",
+		icon: BarChart3,
+		shortcutKeys: ["G", "N"],
+	},
+	{
+		title: "Pipelines",
+		href: "/pipelines",
+		icon: Workflow,
+		shortcutKeys: ["G", "I"],
 	},
 	{
 		title: "Learn",

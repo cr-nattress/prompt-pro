@@ -16,17 +16,17 @@ export interface ModelDefinition {
 
 export const PLAYGROUND_MODELS: ModelDefinition[] = [
 	{
-		id: "claude-sonnet-4-20250514",
-		name: "Claude Sonnet 4",
+		id: "claude-sonnet-4-6-20250514",
+		name: "Claude Sonnet 4.6",
 		provider: "anthropic",
 		available: true,
 		inputCostPer1M: 3,
 		outputCostPer1M: 15,
-		maxOutputTokens: 8192,
+		maxOutputTokens: 16000,
 	},
 	{
-		id: "claude-haiku-3-5-20241022",
-		name: "Claude Haiku 3.5",
+		id: "claude-haiku-4-5-20251001",
+		name: "Claude Haiku 4.5",
 		provider: "anthropic",
 		available: true,
 		inputCostPer1M: 0.8,
@@ -34,8 +34,8 @@ export const PLAYGROUND_MODELS: ModelDefinition[] = [
 		maxOutputTokens: 8192,
 	},
 	{
-		id: "claude-opus-4-20250514",
-		name: "Claude Opus 4",
+		id: "claude-opus-4-6-20250611",
+		name: "Claude Opus 4.6",
 		provider: "anthropic",
 		available: true,
 		inputCostPer1M: 15,
@@ -62,7 +62,7 @@ export const PLAYGROUND_MODELS: ModelDefinition[] = [
 	},
 ];
 
-export const DEFAULT_MODEL_ID = "claude-sonnet-4-20250514";
+export const DEFAULT_MODEL_ID = "claude-sonnet-4-6-20250514";
 
 export function getModelDefinition(
 	modelId: string,

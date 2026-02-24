@@ -1,13 +1,29 @@
 "use client";
 
-import { AlertTriangle, BookOpen, Library } from "lucide-react";
+import {
+	AlertTriangle,
+	BookOpen,
+	Brain,
+	Library,
+	Map as MapIcon,
+	Newspaper,
+	Puzzle,
+	Sparkles,
+	Trophy,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
 	{ label: "Techniques", href: "/learn", icon: BookOpen },
+	{ label: "Paths", href: "/learn/paths", icon: MapIcon },
+	{ label: "Patterns", href: "/learn/patterns", icon: Puzzle },
+	{ label: "Challenges", href: "/learn/challenges", icon: Trophy },
+	{ label: "Showcases", href: "/learn/showcases", icon: Sparkles },
+	{ label: "Feed", href: "/learn/feed", icon: Newspaper },
 	{ label: "Anti-Patterns", href: "/learn/anti-patterns", icon: AlertTriangle },
+	{ label: "Models", href: "/learn/models", icon: Brain },
 	{ label: "Glossary", href: "/learn/glossary", icon: Library },
 ];
 

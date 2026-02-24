@@ -28,6 +28,7 @@ import {
 	parameterHighlightThemeDark,
 	parameterHighlightThemeLight,
 } from "./parameter-decoration";
+import { patternAutocomplete } from "./pattern-autocomplete";
 import { promptEditorDark, promptEditorLight } from "./theme";
 
 interface PromptEditorProps {
@@ -84,7 +85,10 @@ export default function PromptEditor({
 				parameterHighlightThemeLight,
 				parameterHighlightThemeDark,
 				autocompletion({
-					override: [createParameterCompletion(parameters)],
+					override: [
+						createParameterCompletion(parameters),
+						patternAutocomplete,
+					],
 				}),
 				ambiguityTheme,
 				ambiguityCompartment.of(

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 		}
 
 		// Use Haiku for speed and cost efficiency
-		const model = getModel("claude-haiku-3-5-20241022");
+		const model = getModel("claude-haiku-4-5-20251001");
 
 		const { text } = await generateText({
 			model,

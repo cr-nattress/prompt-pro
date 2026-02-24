@@ -7,16 +7,19 @@ import { Recommendations } from "@/components/dashboard/recommendations";
 import { SkillProfileCard } from "@/components/dashboard/skill-profile-card";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { WeeklyProgressCard } from "@/components/dashboard/weekly-progress-card";
+import { DriftAlertList } from "@/components/drift/drift-alert-list";
 import { requireAuth } from "@/lib/auth";
 import {
 	getDashboardStats,
 	getRecentItems,
 } from "@/lib/db/queries/dashboard-stats";
+import { getActiveDriftAlerts } from "@/lib/db/queries/drift-alerts";
 import {
 	getUserSkillProfile,
 	getWeeklyProgressHistory,
 } from "@/lib/db/queries/skill-profile";
 import type { SkillProfile } from "@/lib/skills/skill-profile";
+import { dismissDriftAlertAction } from "./actions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -29,12 +32,14 @@ function getGreeting(): string {
 
 export default async function DashboardPage() {
 	const { user, workspace } = await requireAuth();
-	const [stats, recentItems, skillProfile, weeklyHistory] = await Promise.all([
-		getDashboardStats(workspace.id),
-		getRecentItems(workspace.id),
-		getUserSkillProfile(user.id),
-		getWeeklyProgressHistory(user.id),
-	]);
+	const [stats, recentItems, skillProfile, weeklyHistory, driftAlerts] =
+		await Promise.all([
+			getDashboardStats(workspace.id),
+			getRecentItems(workspace.id),
+			getUserSkillProfile(user.id),
+			getWeeklyProgressHistory(user.id),
+			getActiveDriftAlerts(workspace.id),
+		]);
 
 	const isEmpty = stats.totalPrompts <= 1;
 	const typedProfile = skillProfile as SkillProfile | null;
@@ -52,6 +57,13 @@ export default async function DashboardPage() {
 					workspace.
 				</p>
 			</div>
+
+			{driftAlerts.length > 0 && (
+				<DriftAlertList
+					alerts={driftAlerts}
+					onDismiss={dismissDriftAlertAction}
+				/>
+			)}
 
 			{isEmpty ? (
 				<ExamplePromptCards />

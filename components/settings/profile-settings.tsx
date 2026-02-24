@@ -4,7 +4,10 @@ import { Loader2, Save } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 import { toast } from "sonner";
-import { updateProfileAction } from "@/app/(dashboard)/settings/actions";
+import {
+	updateLeaderboardOptInAction,
+	updateProfileAction,
+} from "@/app/(dashboard)/settings/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,20 +20,26 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface ProfileSettingsProps {
 	name: string;
 	email: string;
 	imageUrl: string;
+	leaderboardOptIn?: boolean | undefined;
 }
 
 export function ProfileSettings({
 	name: initialName,
 	email,
 	imageUrl,
+	leaderboardOptIn: initialLeaderboardOptIn = false,
 }: ProfileSettingsProps) {
 	const [name, setName] = useState(initialName);
 	const [isSaving, setIsSaving] = useState(false);
+	const [leaderboardOptIn, setLeaderboardOptIn] = useState(
+		initialLeaderboardOptIn,
+	);
 	const { theme, setTheme } = useTheme();
 
 	const initials = initialName
@@ -131,6 +140,39 @@ export function ProfileSettings({
 								<SelectItem value="dark">Dark</SelectItem>
 							</SelectContent>
 						</Select>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Leaderboard</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex items-center justify-between">
+						<div>
+							<Label htmlFor="leaderboard-opt-in">
+								Show my name on leaderboards
+							</Label>
+							<p className="text-muted-foreground text-xs">
+								When disabled, your name appears as &quot;Anonymous&quot; on
+								challenge leaderboards.
+							</p>
+						</div>
+						<Switch
+							id="leaderboard-opt-in"
+							checked={leaderboardOptIn}
+							onCheckedChange={async (checked) => {
+								setLeaderboardOptIn(checked);
+								const result = await updateLeaderboardOptInAction(checked);
+								if (result.success) {
+									toast.success("Leaderboard preference updated");
+								} else {
+									setLeaderboardOptIn(!checked);
+									toast.error(result.error);
+								}
+							}}
+						/>
 					</div>
 				</CardContent>
 			</Card>

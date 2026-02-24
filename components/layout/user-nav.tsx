@@ -14,8 +14,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-
 function UserNavContent({
 	fullName,
 	email,
@@ -95,20 +93,6 @@ function ClerkUserNav() {
 	);
 }
 
-function MockUserNav() {
-	return (
-		<UserNavContent
-			fullName="Dev User"
-			email="dev@localhost"
-			imageUrl=""
-			initials="DU"
-			onSignOut={() => {
-				window.location.href = "/";
-			}}
-		/>
-	);
-}
-
 export function UserNav() {
-	return bypassAuth ? <MockUserNav /> : <ClerkUserNav />;
+	return <ClerkUserNav />;
 }

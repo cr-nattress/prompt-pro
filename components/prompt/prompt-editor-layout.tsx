@@ -4,7 +4,9 @@ import {
 	ChevronLeft,
 	Copy,
 	FlaskConical,
+	Globe,
 	History,
+	ListChecks,
 	Loader2,
 	Minimize2,
 	Save,
@@ -32,10 +34,13 @@ import {
 	expertRewriteAction,
 } from "@/app/(dashboard)/prompts/expert-actions";
 import { getPromptVersionsAction } from "@/app/(dashboard)/prompts/version-actions";
+import { PublishDialog } from "@/components/gallery/publish-dialog";
 import { AnalysisPanel } from "@/components/prompt/analysis/analysis-panel";
 import { CompressDiffDialog } from "@/components/prompt/analysis/compress-diff-dialog";
 import { EnhanceDiffDialog } from "@/components/prompt/analysis/enhance-diff-dialog";
 import { ExpertViewDialog } from "@/components/prompt/analysis/expert-view-dialog";
+import { FewShotDialog } from "@/components/prompt/analysis/fewshot-dialog";
+import { OptimizeModelDialog } from "@/components/prompt/analysis/optimize-model-dialog";
 import { CoachSidebar } from "@/components/prompt/editor/coach-sidebar";
 import { FormatEnforcerPanel } from "@/components/prompt/editor/format-enforcer-panel";
 import { LinterConfig } from "@/components/prompt/editor/linter-config";
@@ -124,6 +129,9 @@ export function PromptEditorLayout({
 		null,
 	);
 	const [expertViewOpen, setExpertViewOpen] = useState(false);
+	const [optimizeDialogOpen, setOptimizeDialogOpen] = useState(false);
+	const [fewShotDialogOpen, setFewShotDialogOpen] = useState(false);
+	const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 	const [showAmbiguities, setShowAmbiguities] = useState(false);
 	const [ghostTextEnabled, setGhostTextEnabled] = useState(false);
 	const [lintViolations, setLintViolations] = useState<LintViolation[]>([]);
@@ -492,11 +500,29 @@ export function PromptEditorLayout({
 						<Button
 							size="sm"
 							variant="outline"
+							onClick={() => setFewShotDialogOpen(true)}
+							disabled={isSaving}
+						>
+							<ListChecks className="mr-1.5 h-3.5 w-3.5" />
+							Examples
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
 							onClick={handleDuplicate}
 							disabled={isSaving}
 						>
 							<Copy className="mr-1.5 h-3.5 w-3.5" />
 							Duplicate
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => setPublishDialogOpen(true)}
+							disabled={isSaving}
+						>
+							<Globe className="mr-1.5 h-3.5 w-3.5" />
+							Publish
 						</Button>
 					</>
 				)}
@@ -580,6 +606,7 @@ export function PromptEditorLayout({
 			onAnalyze={handleAnalyze}
 			onEnhance={handleEnhance}
 			onExpertRewrite={handleExpertRewrite}
+			onOptimizeForModel={() => setOptimizeDialogOpen(true)}
 			onAppendSuggestion={(snippet) => {
 				setTemplateText((prev) => prev + snippet);
 				setDirty(true);
@@ -747,6 +774,38 @@ export function PromptEditorLayout({
 					originalText={templateText}
 					result={expertResult}
 					onApply={handleApplyExpertRewrite}
+				/>
+			)}
+
+			{/* Few-shot examples dialog */}
+			<FewShotDialog
+				open={fewShotDialogOpen}
+				onOpenChange={setFewShotDialogOpen}
+				templateText={templateText}
+				onInsert={(examples) => {
+					setTemplateText((prev) => `${prev}\n\n${examples}`);
+					setDirty(true);
+				}}
+			/>
+
+			{/* Model optimization dialog */}
+			<OptimizeModelDialog
+				open={optimizeDialogOpen}
+				onOpenChange={setOptimizeDialogOpen}
+				templateText={templateText}
+				onApply={(text) => {
+					setTemplateText(text);
+					setDirty(true);
+					showToast("success", "Model-optimized prompt applied");
+				}}
+			/>
+
+			{/* Publish to gallery dialog */}
+			{mode === "edit" && prompt && (
+				<PublishDialog
+					open={publishDialogOpen}
+					onOpenChange={setPublishDialogOpen}
+					promptTemplateId={prompt.id}
 				/>
 			)}
 		</div>

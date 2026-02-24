@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { updateUser } from "@/lib/db/queries/users";
+import { updateLeaderboardOptIn, updateUser } from "@/lib/db/queries/users";
 import { updateWorkspace } from "@/lib/db/queries/workspaces";
 import { slugify } from "@/lib/prompt-utils";
 import type { ActionResult } from "@/types";
@@ -37,6 +37,26 @@ export async function updateWorkspaceSettingsAction(
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Failed to update workspace";
+		return { success: false, error: message };
+	}
+}
+
+export async function updateLeaderboardOptInAction(
+	optIn: boolean,
+): Promise<ActionResult<{ leaderboardOptIn: boolean }>> {
+	try {
+		const { user } = await requireAuth();
+		const updated = await updateLeaderboardOptIn(user.id, optIn);
+		if (!updated) {
+			return { success: false, error: "Failed to update preference" };
+		}
+		return {
+			success: true,
+			data: { leaderboardOptIn: updated.leaderboardOptIn },
+		};
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Failed to update preference";
 		return { success: false, error: message };
 	}
 }

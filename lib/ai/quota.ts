@@ -32,8 +32,8 @@ export async function getAnalysisCountThisMonth(
 			and(
 				gte(analyses.createdAt, startOfMonth),
 				or(
-					sql`${analyses.promptId} IN (SELECT id FROM prompt_vault.prompt_templates WHERE workspace_id = ${workspaceId})`,
-					sql`${analyses.blueprintId} IN (SELECT id FROM prompt_vault.context_blueprints WHERE workspace_id = ${workspaceId})`,
+					sql`${analyses.promptId} IN (SELECT id FROM prompt.prompt_templates WHERE workspace_id = ${workspaceId})`,
+					sql`${analyses.blueprintId} IN (SELECT id FROM prompt.context_blueprints WHERE workspace_id = ${workspaceId})`,
 				),
 			),
 		);

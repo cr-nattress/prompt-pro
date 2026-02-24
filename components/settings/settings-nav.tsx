@@ -1,6 +1,16 @@
 "use client";
 
-import { Boxes, CreditCard, KeyRound, User, Wrench } from "lucide-react";
+import {
+	Bell,
+	Boxes,
+	ClipboardList,
+	CreditCard,
+	FolderOpen,
+	KeyRound,
+	User,
+	Users,
+	Wrench,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -9,7 +19,11 @@ const NAV_ITEMS = [
 	{ label: "Profile", href: "/settings", icon: User },
 	{ label: "Workspace", href: "/settings/workspace", icon: Wrench },
 	{ label: "Apps", href: "/settings/apps", icon: Boxes },
+	{ label: "Collections", href: "/settings/collections", icon: FolderOpen },
+	{ label: "Team", href: "/settings/team", icon: Users },
 	{ label: "API Keys", href: "/settings/api-keys", icon: KeyRound },
+	{ label: "Webhooks", href: "/settings/webhooks", icon: Bell },
+	{ label: "Audit Log", href: "/settings/audit-log", icon: ClipboardList },
 	{ label: "Billing", href: "/settings/billing", icon: CreditCard },
 ];
 

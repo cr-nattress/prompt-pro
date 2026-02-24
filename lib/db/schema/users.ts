@@ -12,6 +12,7 @@ export const users = promptSchema.table("users", {
 	plan: planEnum().default("free").notNull(),
 	skillProfile: jsonb("skill_profile"),
 	dismissedLessons: text("dismissed_lessons").array().default([]).notNull(),
+	leaderboardOptIn: boolean("leaderboard_opt_in").default(false).notNull(),
 	onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.defaultNow()

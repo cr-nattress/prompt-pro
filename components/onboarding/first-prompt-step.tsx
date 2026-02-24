@@ -102,7 +102,7 @@ export function FirstPromptStep({
 			</div>
 
 			{previewText && (
-				<div className="h-[150px] rounded-lg border">
+				<div className="h-[200px] overflow-hidden rounded-lg border">
 					<PromptEditor value={previewText} readOnly />
 				</div>
 			)}

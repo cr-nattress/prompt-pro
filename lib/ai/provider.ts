@@ -1,7 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { env } from "@/lib/env";
 
-const DEFAULT_MODEL_ID = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL_ID = "claude-sonnet-4-6-20250514";
 
 let anthropicInstance: ReturnType<typeof createAnthropic> | null = null;
 

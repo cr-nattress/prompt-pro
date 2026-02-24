@@ -34,9 +34,9 @@ const COST_PER_MILLION: Record<string, number> = {
 	"gpt-4-turbo": 10,
 	"gpt-4": 30,
 	"gpt-3.5-turbo": 0.5,
-	"claude-3-5-sonnet": 3,
-	"claude-3-opus": 15,
-	"claude-3-haiku": 0.25,
+	"claude-sonnet-4.6": 3,
+	"claude-opus-4.6": 15,
+	"claude-haiku-4.5": 0.8,
 };
 
 export function estimateCost(tokenCount: number, model: string): number {

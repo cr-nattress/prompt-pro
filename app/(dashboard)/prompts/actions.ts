@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/auth";
 import { checkPromptLimit } from "@/lib/billing/gating";
+import { dismissDriftAlert } from "@/lib/db/queries/drift-alerts";
 import {
 	createPrompt,
 	createPromptVersion,
@@ -251,4 +252,16 @@ async function trackWeeklyCounter(
 		await getOrCreateWeeklyProgress(userId, weekStart, profile);
 	}
 	await incrementWeeklyCounter(userId, weekStart, field);
+}
+
+export async function dismissDriftAlertAction(
+	alertId: string,
+): Promise<boolean> {
+	try {
+		await requireAuth();
+		const result = await dismissDriftAlert(alertId);
+		return result !== null;
+	} catch {
+		return false;
+	}
 }

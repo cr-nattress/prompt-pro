@@ -42,6 +42,15 @@ export async function deleteUser(clerkId: string) {
 	return result[0] ?? null;
 }
 
+export async function getUserByEmail(email: string) {
+	const result = await db
+		.select()
+		.from(users)
+		.where(eq(users.email, email))
+		.limit(1);
+	return result[0] ?? null;
+}
+
 export async function getUserById(id: string) {
 	const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
 	return result[0] ?? null;
@@ -62,6 +71,15 @@ export async function dismissLesson(userId: string, lessonId: string) {
 		.set({
 			dismissedLessons: sql`array_append(${users.dismissedLessons}, ${lessonId})`,
 		})
+		.where(eq(users.id, userId))
+		.returning();
+	return result[0] ?? null;
+}
+
+export async function updateLeaderboardOptIn(userId: string, optIn: boolean) {
+	const result = await db
+		.update(users)
+		.set({ leaderboardOptIn: optIn })
 		.where(eq(users.id, userId))
 		.returning();
 	return result[0] ?? null;

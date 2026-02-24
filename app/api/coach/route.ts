@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 			return Response.json({ error: "promptText required" }, { status: 400 });
 		}
 
-		const model = getModel("claude-sonnet-4-20250514");
+		const model = getModel("claude-sonnet-4-6-20250514");
 
 		const modelContext = targetModel
 			? `\nThe target LLM for this prompt is: ${targetModel}. Provide model-specific advice where relevant.`

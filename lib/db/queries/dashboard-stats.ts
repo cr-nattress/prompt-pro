@@ -59,7 +59,7 @@ async function getResolvesThisMonth(workspaceId: string): Promise<number> {
 			and(
 				gte(resolveLogs.resolvedAt, startOfMonth),
 				sql`${resolveLogs.apiKeyId} IN (
-					SELECT id FROM prompt_vault.api_keys
+					SELECT id FROM prompt.api_keys
 					WHERE workspace_id = ${workspaceId}
 				)`,
 			),
@@ -93,10 +93,10 @@ export async function getRecentItems(
 			overall_score: number | null;
 		}>(sql`
 			SELECT pt.id, pt.name, pt.slug, a.slug AS app_slug, pt.updated_at,
-				(SELECT an.overall_score FROM prompt_vault.analyses an
+				(SELECT an.overall_score FROM prompt.analyses an
 				 WHERE an.prompt_id = pt.id ORDER BY an.created_at DESC LIMIT 1) AS overall_score
-			FROM prompt_vault.prompt_templates pt
-			JOIN prompt_vault.apps a ON a.id = pt.app_id
+			FROM prompt.prompt_templates pt
+			JOIN prompt.apps a ON a.id = pt.app_id
 			WHERE pt.workspace_id = ${workspaceId}
 			ORDER BY pt.updated_at DESC
 			LIMIT ${limit}
@@ -111,10 +111,10 @@ export async function getRecentItems(
 			overall_score: number | null;
 		}>(sql`
 			SELECT cb.id, cb.name, cb.slug, a.slug AS app_slug, cb.updated_at,
-				(SELECT an.overall_score FROM prompt_vault.analyses an
+				(SELECT an.overall_score FROM prompt.analyses an
 				 WHERE an.blueprint_id = cb.id ORDER BY an.created_at DESC LIMIT 1) AS overall_score
-			FROM prompt_vault.context_blueprints cb
-			JOIN prompt_vault.apps a ON a.id = cb.app_id
+			FROM prompt.context_blueprints cb
+			JOIN prompt.apps a ON a.id = cb.app_id
 			WHERE cb.workspace_id = ${workspaceId}
 			ORDER BY cb.updated_at DESC
 			LIMIT ${limit}

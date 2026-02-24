@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/auth";
 import type { ExamplePrompt } from "@/lib/data/example-prompts";
+import { dismissDriftAlert } from "@/lib/db/queries/drift-alerts";
 import { ensureDefaultApp } from "@/lib/db/queries/ensure-default-app";
 import { createPrompt } from "@/lib/db/queries/prompts";
 import { slugify } from "@/lib/prompt-utils";
@@ -36,5 +37,17 @@ export async function forkExamplePromptAction(
 		const message =
 			error instanceof Error ? error.message : "Failed to fork example";
 		return { success: false, error: message };
+	}
+}
+
+export async function dismissDriftAlertAction(
+	alertId: string,
+): Promise<boolean> {
+	try {
+		await requireAuth();
+		const result = await dismissDriftAlert(alertId);
+		return result !== null;
+	} catch {
+		return false;
 	}
 }

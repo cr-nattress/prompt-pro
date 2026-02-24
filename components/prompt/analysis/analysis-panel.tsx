@@ -1,6 +1,12 @@
 "use client";
 
-import { GraduationCap, Loader2, Sparkles, Wand2 } from "lucide-react";
+import {
+	GraduationCap,
+	Loader2,
+	Settings2,
+	Sparkles,
+	Wand2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +29,7 @@ interface AnalysisPanelProps {
 	onAnalyze: () => void;
 	onEnhance: () => void;
 	onExpertRewrite: () => void;
+	onOptimizeForModel?: () => void;
 	onAppendSuggestion?: (text: string) => void;
 }
 
@@ -68,6 +75,7 @@ export function AnalysisPanel({
 	error,
 	onAnalyze,
 	onEnhance,
+	onOptimizeForModel,
 	onExpertRewrite,
 	onAppendSuggestion,
 }: AnalysisPanelProps) {
@@ -175,6 +183,12 @@ export function AnalysisPanel({
 							)}
 							Expert View
 						</Button>
+						{onOptimizeForModel && (
+							<Button size="sm" variant="outline" onClick={onOptimizeForModel}>
+								<Settings2 className="mr-1.5 h-3.5 w-3.5" />
+								Optimize
+							</Button>
+						)}
 					</div>
 				</div>
 

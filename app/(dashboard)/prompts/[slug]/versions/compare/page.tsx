@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CompareView } from "@/components/version/compare-view";
 import { StatusBadge } from "@/components/version/status-badge";
 import { VersionBadge } from "@/components/version/version-badge";
+import { VersionInsightPanel } from "@/components/version/version-insight";
 import { requireAuth } from "@/lib/auth";
 import {
 	getPromptBySlugInWorkspace,
@@ -63,6 +64,10 @@ export default async function PromptCompareVersionsPage({
 					newValue={toVersion.templateText}
 					oldTitle={formatVersionLabel(fromVersion.version)}
 					newTitle={formatVersionLabel(toVersion.version)}
+				/>
+				<VersionInsightPanel
+					oldText={fromVersion.templateText}
+					newText={toVersion.templateText}
 				/>
 			</div>
 		</div>

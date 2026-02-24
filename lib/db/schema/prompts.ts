@@ -8,6 +8,7 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 import { apps } from "./apps";
+import { collections } from "./collections";
 import { promptSchema, versionStatusEnum } from "./enums";
 import { workspaces } from "./workspaces";
 
@@ -27,6 +28,9 @@ export const promptTemplates = promptSchema.table(
 		description: text(),
 		tags: text().array(),
 		parameterSchema: jsonb("parameter_schema"),
+		collectionId: uuid("collection_id").references(() => collections.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
